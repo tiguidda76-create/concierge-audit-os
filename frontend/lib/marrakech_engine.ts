@@ -1,89 +1,121 @@
-// Marrakech Hyper-Local STR Benchmark & Valuation Engine
+export type ValuationStrategyLevel = 'MODERATE' | 'REALISTIC' | 'AGGRESSIVE';
 
-export interface MarrakechDistrictBenchmark {
+export interface MarrakechRealisticBenchmark {
   district: string;
-  type: 'apartment' | 'riad' | 'villa' | 'penthouse';
-  top10_adr_mad: number;
+  bedrooms: number;
   market_avg_adr_mad: number;
-  top10_occupancy_pct: number;
+  top10_adr_mad: number;
   market_avg_occupancy_pct: number;
+  top10_occupancy_pct: number;
+  strategy_description: string;
   key_drivers: string[];
 }
 
-export const MARRAKECH_DISTRICT_BENCHMARKS: Record<string, MarrakechDistrictBenchmark> = {
-  'Guéliz': {
-    district: 'Guéliz',
-    type: 'apartment',
-    top10_adr_mad: 1350,
-    market_avg_adr_mad: 800,
-    top10_occupancy_pct: 79,
-    market_avg_occupancy_pct: 52,
-    key_drivers: ['Terrasse privative', 'Fibre optique 200M', 'Climatisation intégrale', 'Gardien 24/7', 'Proche Carré Eden'],
-  },
-  'Hivernage': {
-    district: 'Hivernage',
-    type: 'penthouse',
-    top10_adr_mad: 2200,
-    market_avg_adr_mad: 1300,
-    top10_occupancy_pct: 82,
-    market_avg_occupancy_pct: 56,
-    key_drivers: ['Piscine de résidence', 'Balcon lounge', 'Déco contemporaine', 'Sécurité VIP', 'Restaurants & Nightlife à pied'],
-  },
-  'Médina (Riad)': {
-    district: 'Médina (Riad)',
-    type: 'riad',
-    top10_adr_mad: 3500,
-    market_avg_adr_mad: 1900,
-    top10_occupancy_pct: 84,
-    market_avg_occupancy_pct: 54,
-    key_drivers: ['Patio avec bassin/piscine', 'Rooftop vue Koutoubia/Atlas', 'Service petit-déjeuner', 'Personnel de maison', 'Emplacement Derb accessible'],
-  },
-  'Palmeraie': {
-    district: 'Palmeraie',
-    type: 'villa',
-    top10_adr_mad: 6500,
-    market_avg_adr_mad: 3800,
-    top10_occupancy_pct: 74,
-    market_avg_occupancy_pct: 44,
-    key_drivers: ['Piscine privée chauffée', 'Grand jardin paysager', 'Gardien & Cuisinière', 'Calme absolu', 'Parking sécurisé'],
-  },
-  'Agdal / Avenue Mohammed VI': {
-    district: 'Agdal',
-    type: 'apartment',
-    top10_adr_mad: 1400,
-    market_avg_adr_mad: 850,
-    top10_occupancy_pct: 76,
-    market_avg_occupancy_pct: 48,
-    key_drivers: ['Résidence fermée avec piscine', 'Terrasse ensoleillée', 'Clim réversible', 'Parking sous-sol'],
-  },
-  'Majorelle / Victor Hugo': {
-    district: 'Majorelle / Victor Hugo',
-    type: 'apartment',
-    top10_adr_mad: 1550,
-    market_avg_adr_mad: 900,
-    top10_occupancy_pct: 80,
-    market_avg_occupancy_pct: 55,
-    key_drivers: ['Proche Jardin Majorelle & YSL', 'Décoration design beldi chic', 'Wi-Fi ultra rapide', 'Ascenseur'],
-  },
-  'Amelkis / Golfs': {
-    district: 'Amelkis',
-    type: 'villa',
-    top10_adr_mad: 5800,
-    market_avg_adr_mad: 3400,
-    top10_occupancy_pct: 72,
-    market_avg_occupancy_pct: 46,
-    key_drivers: ['Vue frontale parcours de golf', 'Piscine privée', 'Design contemporain', 'Sécurité 24/7'],
-  },
-  'Autre Quartier (Marrakech)': {
-    district: 'Marrakech',
-    type: 'apartment',
-    top10_adr_mad: 1200,
-    market_avg_adr_mad: 750,
-    top10_occupancy_pct: 75,
-    market_avg_occupancy_pct: 50,
-    key_drivers: ['Propreté irréprochable', 'Climatisation', 'Wi-Fi', 'Accueil réactif'],
-  },
+export const MARRAKECH_DISTRICTS = [
+  'Guéliz',
+  'Hivernage',
+  'Médina (Riad)',
+  'Palmeraie',
+  'Majorelle / Victor Hugo',
+  'Agdal / Avenue Mohammed VI',
+  'Amelkis / Golfs',
+  'Autre Quartier (Marrakech)'
+];
+
+// Compatibility record mapped to realistic 2-bedroom benchmark
+export const MARRAKECH_DISTRICT_BENCHMARKS: Record<string, { top10_adr_mad: number; market_avg_adr_mad: number; top10_occupancy_pct: number; market_avg_occupancy_pct: number }> = {
+  'Guéliz': { top10_adr_mad: 1050, market_avg_adr_mad: 720, top10_occupancy_pct: 79, market_avg_occupancy_pct: 52 },
+  'Hivernage': { top10_adr_mad: 1450, market_avg_adr_mad: 950, top10_occupancy_pct: 82, market_avg_occupancy_pct: 56 },
+  'Médina (Riad)': { top10_adr_mad: 2600, market_avg_adr_mad: 1800, top10_occupancy_pct: 82, market_avg_occupancy_pct: 58 },
+  'Palmeraie': { top10_adr_mad: 4600, market_avg_adr_mad: 3200, top10_occupancy_pct: 74, market_avg_occupancy_pct: 44 },
+  'Majorelle / Victor Hugo': { top10_adr_mad: 1150, market_avg_adr_mad: 800, top10_occupancy_pct: 80, market_avg_occupancy_pct: 55 },
+  'Agdal / Avenue Mohammed VI': { top10_adr_mad: 1100, market_avg_adr_mad: 760, top10_occupancy_pct: 76, market_avg_occupancy_pct: 48 },
+  'Amelkis / Golfs': { top10_adr_mad: 4200, market_avg_adr_mad: 2900, top10_occupancy_pct: 72, market_avg_occupancy_pct: 46 },
+  'Autre Quartier (Marrakech)': { top10_adr_mad: 900, market_avg_adr_mad: 600, top10_occupancy_pct: 75, market_avg_occupancy_pct: 50 },
 };
+
+/**
+ * Computes realistic, ground-truth Marrakech STR benchmarks indexed by exact bedroom count,
+ * district, and ambition level (Moderate, Realistic Top 15%, or Aggressive Leader).
+ */
+export function getRealisticMarrakechBenchmark(
+  district: string = 'Guéliz',
+  bedrooms: number = 2,
+  strategy: ValuationStrategyLevel = 'REALISTIC'
+): MarrakechRealisticBenchmark {
+  const beds = Math.max(1, Math.min(10, bedrooms));
+  const isRiad = district.includes('Médina') || district.includes('Riad');
+  const isVilla = district.includes('Palmeraie') || district.includes('Amelkis');
+  const isHivernage = district.includes('Hivernage');
+  const isMajorelle = district.includes('Majorelle');
+  const isAgdal = district.includes('Agdal');
+
+  let baseAvgPerBed = 350;
+  let top10Multiplier = 1.35;
+
+  if (isRiad) {
+    baseAvgPerBed = 450;
+    top10Multiplier = 1.38;
+  } else if (isVilla) {
+    baseAvgPerBed = 750;
+    top10Multiplier = 1.42;
+  } else if (isHivernage) {
+    baseAvgPerBed = 480;
+    top10Multiplier = 1.38;
+  } else if (isMajorelle) {
+    baseAvgPerBed = 420;
+    top10Multiplier = 1.35;
+  } else if (isAgdal) {
+    baseAvgPerBed = 380;
+    top10Multiplier = 1.32;
+  } else {
+    baseAvgPerBed = 380;
+    top10Multiplier = 1.36;
+  }
+
+  if (strategy === 'MODERATE') {
+    top10Multiplier = 1.20;
+  } else if (strategy === 'AGGRESSIVE') {
+    top10Multiplier = 1.55;
+  }
+
+  let marketAvgAdr = 0;
+  if (beds === 1) {
+    marketAvgAdr = isHivernage ? 550 : (isRiad ? 600 : 420);
+  } else if (beds === 2) {
+    marketAvgAdr = isHivernage ? 950 : (isRiad ? 1100 : 720);
+  } else if (beds === 3) {
+    marketAvgAdr = isHivernage ? 1400 : (isRiad ? 1600 : 1100);
+  } else {
+    marketAvgAdr = Math.round(beds * baseAvgPerBed);
+  }
+
+  const top10Adr = Math.round(marketAvgAdr * top10Multiplier);
+  const avgOcc = isRiad ? 58 : (isHivernage ? 56 : 52);
+  const top10Occ = strategy === 'MODERATE' ? 74 : (strategy === 'AGGRESSIVE' ? 84 : 79);
+
+  return {
+    district,
+    bedrooms: beds,
+    market_avg_adr_mad: marketAvgAdr,
+    top10_adr_mad: top10Adr,
+    market_avg_occupancy_pct: avgOcc,
+    top10_occupancy_pct: top10Occ,
+    strategy_description: strategy === 'MODERATE'
+      ? 'Objectif Prudent (+20% croissance)'
+      : strategy === 'AGGRESSIVE'
+      ? 'Objectif Leader Marché Top 5% (+55%)'
+      : 'Objectif Réaliste Top 15% (+35% croissance)',
+    key_drivers: [
+      'Tarification dynamique week-end & événements',
+      'Titre mobile à fort taux de clic',
+      'Terrasse / Balcon aménagé',
+      'Climatisation réversible intégrale',
+      'Fibre optique 200M vérifiée',
+      'Gardiennage & Check-in soigné'
+    ]
+  };
+}
 
 export interface PropertyData {
   id?: string;
@@ -107,6 +139,7 @@ export interface PropertyData {
   current_title: string;
   current_description: string;
   owner_name: string;
+  strategy_level?: ValuationStrategyLevel;
   
   has_fiber_optic: boolean;
   ac_all_rooms: boolean;
@@ -189,41 +222,41 @@ export function calculateRealAdrBreakdown(params: AdrCalculatorParams): AdrValua
   const insights: string[] = [];
 
   if (params.hasFiberOptic) {
-    multiplierPct += 10;
-    insights.push('+10% Prime Fibre Optique 200M (attractivité digital nomads)');
+    multiplierPct += 8;
+    insights.push('+8% Fibre Optique 200M (attractivité nomades)');
   }
   if (params.hasAcAllRooms) {
-    multiplierPct += 15;
-    insights.push('+15% Climatisation intégrale (indispensable pour l\'été à Marrakech)');
+    multiplierPct += 12;
+    insights.push('+12% Climatisation intégrale chaud/froid');
   }
   if (params.hasPrivateTerrace) {
-    multiplierPct += 18;
-    insights.push('+18% Terrasse / Solarium privatif avec vue dégagée');
+    multiplierPct += 15;
+    insights.push('+15% Terrasse / Rooftop privatif');
   }
   if (params.hasPrivatePool) {
-    multiplierPct += 40;
-    insights.push('+40% Piscine privée / Bassin de Riad');
+    multiplierPct += 35;
+    insights.push('+35% Piscine privée / Bassin de Riad');
   }
   if (params.hasGuard247) {
-    multiplierPct += 10;
-    insights.push('+10% Sécurité & Gardiennage 24/7 (rassurance voyageur)');
+    multiplierPct += 8;
+    insights.push('+8% Sécurité & Gardiennage 24/7');
   }
 
   if (params.reviewScore >= 4.90) {
-    multiplierPct += 12;
-    insights.push('+12% Badge d\'excellence / Note 4.9+ ★');
+    multiplierPct += 10;
+    insights.push('+10% Badge Coup de Cœur 4.9+ ★');
   } else if (params.reviewScore < 4.60) {
-    multiplierPct -= 15;
-    insights.push('-15% Pénalité d\'algorithme due à une note < 4.6 ★');
+    multiplierPct -= 12;
+    insights.push('-12% Décote note < 4.6 ★');
   }
 
-  const peakAdr = Math.round(netDailyRate * 1.48 * (1 + multiplierPct / 100));
+  const peakAdr = Math.round(netDailyRate * 1.40 * (1 + multiplierPct / 100));
   const shoulderAdr = Math.round(netDailyRate * (1 + multiplierPct / 100));
-  const lowSeasonFactor = params.hasPrivatePool || params.hasAcAllRooms ? 0.78 : 0.65;
+  const lowSeasonFactor = params.hasPrivatePool || params.hasAcAllRooms ? 0.80 : 0.68;
   const lowAdr = Math.round(netDailyRate * lowSeasonFactor * (1 + multiplierPct / 100));
 
-  const weightedAnnualAdr = Math.round((peakAdr * 0.48) + (shoulderAdr * 0.32) + (lowAdr * 0.20));
-  const benchmark = MARRAKECH_DISTRICT_BENCHMARKS[params.district] || MARRAKECH_DISTRICT_BENCHMARKS['Guéliz'];
+  const weightedAnnualAdr = Math.round((peakAdr * 0.45) + (shoulderAdr * 0.35) + (lowAdr * 0.20));
+  const benchmark = getRealisticMarrakechBenchmark(params.district, params.bedrooms, 'REALISTIC');
   const optimizedYieldTarget = Math.max(weightedAnnualAdr, benchmark.top10_adr_mad);
 
   return {
@@ -247,7 +280,8 @@ export function calculateRealAdrBreakdown(params: AdrCalculatorParams): AdrValua
 
 export function calculateMarrakechAudit(prop: PropertyData) {
   const auditId = prop.id || `aud_${Math.random().toString(36).substring(2, 9)}`;
-  const benchmark = MARRAKECH_DISTRICT_BENCHMARKS[prop.district] || MARRAKECH_DISTRICT_BENCHMARKS['Guéliz'];
+  const strategy = prop.strategy_level || 'REALISTIC';
+  const benchmark = getRealisticMarrakechBenchmark(prop.district, prop.bedrooms, strategy);
   
   const targetAdr = prop.target_adr && prop.target_adr > 0 ? prop.target_adr : benchmark.top10_adr_mad;
   const targetOcc = prop.target_occupancy_pct && prop.target_occupancy_pct > 0 ? prop.target_occupancy_pct : benchmark.top10_occupancy_pct;
@@ -334,15 +368,15 @@ export function calculateMarrakechAudit(prop: PropertyData) {
         score: pricingScore,
         weight_pct: 30,
         status: formatStatus(pricingScore),
-        insight: `Sous-tarifié de ~${adrGap} MAD/nuit face aux meilleurs logements de ${prop.district} (${targetAdr} MAD/nuit en haute saison).`,
-        action_item: 'Activer la tarification dynamique haute/basse saison et le minimum de 2 à 3 nuits le week-end.'
+        insight: `Tarif actuel de ${prop.current_adr} MAD/nuit face à un objectif réaliste de ${targetAdr} MAD/nuit pour un ${prop.bedrooms} chambre(s) à ${prop.district}.`,
+        action_item: 'Mettre en place la grille dynamique haute/basse saison et le séjour minimum de 2 nuits le week-end.'
       },
       seo_content_score: {
         name: 'SEO & Copywriting OTA (Airbnb / Booking)',
         score: seoScore,
         weight_pct: 25,
         status: formatStatus(seoScore),
-        insight: `Le titre actuel (${titleLen} caractères) manque des mots-clés à fort taux de clic recherchés par les voyageurs à Marrakech.`,
+        insight: `Le titre actuel (${titleLen} caractères) manque des mots-clés spécifiques à fort taux de clic à Marrakech.`,
         action_item: 'Déployer les 3 variantes de titres A/B et structurer l\'annonce en 4 blocs immersifs.'
       },
       visual_score: {
@@ -351,14 +385,14 @@ export function calculateMarrakechAudit(prop: PropertyData) {
         weight_pct: 25,
         status: formatStatus(visualScore),
         insight: `La galerie compte ${prop.photo_count} photos. ${prop.has_professional_photos ? 'Qualité photo certifiée.' : 'Absence de shooting HDR professionnel grand angle et mise en scène.'}`,
-        action_item: 'Réorganiser les 5 premières photos pour capter l\'attention en moins de 2 secondes sur mobile.'
+        action_item: 'Réorganiser les 5 premières photos pour capter l\'attention en moins de 2 secondes sur smartphone.'
       },
       reputation_score: {
         name: 'Confiance Algorithmique & Avis Voyageurs',
         score: repScore,
         weight_pct: 20,
         status: formatStatus(repScore),
-        insight: `Note réelle de ${prop.review_rating} ★ (${prop.review_count} avis). Nécessite une régularité de 5★ pour le badge Coup de Cœur Voyageur.`,
+        insight: `Note de ${prop.review_rating} ★ (${prop.review_count} avis). Un maintien régulier au-dessus de 4.85★ est requis pour le badge Coup de Cœur.`,
         action_item: 'Automatiser le message de bienvenue et le suivi post-check-in pour maximiser les avis 5 étoiles.'
       }
     },
@@ -368,7 +402,7 @@ export function calculateMarrakechAudit(prop: PropertyData) {
         pillar: 'Yield & Revenus Marrakech',
         title: `Capter les ${annualLeakage.toLocaleString('fr-FR')} MAD de fuite annuelle`,
         impact_estimate: `+${monthlyLeakage.toLocaleString('fr-FR')} MAD / mois`,
-        action: `Augmenter l'ADR de ${prop.current_adr} MAD à ${targetAdr} MAD avec une grille tarifaire dynamique adaptée aux événements et saisons de Marrakech.`
+        action: `Faire évoluer l'ADR de ${prop.current_adr} MAD à ${targetAdr} MAD avec une grille tarifaire dynamique adaptée à la saisonnalité de Marrakech.`
       },
       {
         priority: 'HIGH',
