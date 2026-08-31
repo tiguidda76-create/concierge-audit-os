@@ -71,10 +71,12 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
     guest_registration_process: 'none',
   });
 
+  // Calculate dynamic realistic benchmark based on exact bedrooms & district & current price
   const realisticBenchmark = useMemo(() => {
-    return getRealisticMarrakechBenchmark(form.district, form.bedrooms, strategyLevel);
-  }, [form.district, form.bedrooms, strategyLevel]);
+    return getRealisticMarrakechBenchmark(form.district, form.bedrooms, strategyLevel, form.current_adr);
+  }, [form.district, form.bedrooms, strategyLevel, form.current_adr]);
 
+  // Keep target ADR aligned with realistic benchmark
   useEffect(() => {
     setForm(prev => ({
       ...prev,
@@ -91,13 +93,15 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
     const targetRev = 365 * (targetOcc / 100) * targetAdr;
     const annualLeakage = Math.max(0, targetRev - currentRev);
     const monthlyLeakage = Math.round(annualLeakage / 12);
+    const growthPct = form.current_adr > 0 ? Math.round(((targetAdr - form.current_adr) / form.current_adr) * 100) : 30;
 
     return {
       currentRev,
       targetRev,
       annualLeakage,
       monthlyLeakage,
-      targetAdr
+      targetAdr,
+      growthPct
     };
   }, [form, realisticBenchmark]);
 
@@ -123,7 +127,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
       const data = await res.json();
       const realProperty: PropertyData = data.property;
 
-      const dynamicBench = getRealisticMarrakechBenchmark(realProperty.district, realProperty.bedrooms, strategyLevel);
+      const dynamicBench = getRealisticMarrakechBenchmark(realProperty.district, realProperty.bedrooms, strategyLevel, realProperty.current_adr);
       const updatedProp: PropertyData = {
         ...realProperty,
         target_adr: dynamicBench.top10_adr_mad,
@@ -177,6 +181,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
 
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xl shadow-slate-100/60 overflow-hidden space-y-0">
+      {/* Top Header Banner */}
       <div className="bg-slate-900 text-white p-6 border-b border-slate-800">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -202,6 +207,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </div>
         </div>
 
+        {/* Input Bar */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -283,6 +289,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             </span>
           </div>
 
+          {/* Strategy Ambition Level */}
           <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
             <span className="text-[10px] font-bold text-slate-400 px-2 uppercase">Ambition :</span>
             {[
@@ -307,6 +314,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          {/* Title */}
           <div className="lg:col-span-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
             <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
               Nom / Titre de l'Annonce
@@ -319,6 +327,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             />
           </div>
 
+          {/* Bedrooms */}
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
             <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
               Chambres
@@ -333,9 +342,10 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             />
           </div>
 
-          <div className="bg-slate-950 p-3 rounded-xl border-2 border-emerald-500/40 shadow-inner">
-            <label className="block text-[10px] font-bold uppercase text-emerald-400 mb-1">
-              Prix Réel / Nuit (MAD)
+          {/* Current Real Price */}
+          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Prix Actuel / Nuit (MAD)
             </label>
             <div className="flex items-center gap-1">
               <input
@@ -345,12 +355,34 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
                 step="25"
                 value={form.current_adr}
                 onChange={(e) => setForm({ ...form, current_adr: parseFloat(e.target.value) || 0 })}
+                className="w-full bg-slate-900 text-sm font-black text-white px-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:border-brand-500"
+              />
+              <span className="text-[11px] font-bold text-slate-400">MAD</span>
+            </div>
+          </div>
+
+          {/* Target ADR with Quick Uplifts */}
+          <div className="bg-slate-950 p-3 rounded-xl border-2 border-emerald-500/40 shadow-inner">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[10px] font-bold uppercase text-emerald-400">
+                Cible ADR ({previewMetrics.growthPct > 0 ? `+${previewMetrics.growthPct}%` : 'Cible'})
+              </label>
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="100"
+                max="50000"
+                step="25"
+                value={form.target_adr || realisticBenchmark.top10_adr_mad}
+                onChange={(e) => setForm({ ...form, target_adr: parseFloat(e.target.value) || 0 })}
                 className="w-full bg-slate-900 text-sm font-black text-emerald-400 px-2 py-1 rounded-lg border border-emerald-500/50 focus:outline-none"
               />
               <span className="text-[11px] font-bold text-slate-400">MAD</span>
             </div>
           </div>
 
+          {/* District */}
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
             <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
               Quartier Marrakech
@@ -368,6 +400,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             </select>
           </div>
 
+          {/* Reviews */}
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
             <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
               Note ★ & Avis
@@ -394,14 +427,33 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </div>
         </div>
 
-        <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {/* Dynamic Benchmark Context Indicator with Quick Buttons */}
+        <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-300">
             <Target className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>
-              Benchmark calculé pour un <strong>{form.bedrooms} chambre(s) à {form.district}</strong> : 
-              Moyenne marché = <strong>{realisticBenchmark.market_avg_adr_mad} MAD</strong> ➔ 
-              Cible {strategyLevel === 'MODERATE' ? 'Prudente' : 'Top 10%'} = <strong className="text-emerald-400">{realisticBenchmark.top10_adr_mad} MAD/nuit</strong>
+              Objectif Réaliste calibré : <strong>{form.current_adr} MAD</strong> ➔ Cible : <strong className="text-emerald-400">{form.target_adr || realisticBenchmark.top10_adr_mad} MAD/nuit</strong>
+              <span className="text-emerald-300 ml-1 font-semibold">(+{previewMetrics.growthPct}% de croissance crédible)</span>
             </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 mr-1 uppercase">Ajustement rapide :</span>
+            {[
+              { label: '+15%', factor: 1.15 },
+              { label: '+25%', factor: 1.25 },
+              { label: '+35%', factor: 1.35 },
+              { label: '+50%', factor: 1.50 },
+            ].map((btn, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, target_adr: Math.round(prev.current_adr * btn.factor) }))}
+                className="text-[10px] font-bold bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 px-2 py-1 rounded-md border border-slate-700 transition-all cursor-pointer"
+              >
+                {btn.label}
+              </button>
+            ))}
           </div>
 
           <button
@@ -414,6 +466,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </button>
         </div>
 
+        {/* Generate Button */}
         <div className="pt-1 flex justify-end">
           <button
             type="button"
@@ -475,9 +528,29 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
               <span>Gardien 24/7</span>
             </label>
           </div>
+
+          {/* Original Listing Description Editor */}
+          <div className="pt-2 border-t border-slate-200/80">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                📝 Description & Équipements de l'Annonce Originale :
+              </label>
+              <span className="text-[11px] text-slate-500">
+                (L'IA extrait fidèlement vos vrais lits, électroménagers, vues et points de repère)
+              </span>
+            </div>
+            <textarea
+              rows={3}
+              value={form.current_description || ''}
+              onChange={(e) => setForm({ ...form, current_description: e.target.value })}
+              placeholder="Collez ou modifiez la description brute de l'annonce..."
+              className="w-full bg-white text-xs text-slate-800 p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none leading-relaxed"
+            />
+          </div>
         </div>
       )}
 
+      {/* Real-time Dynamic Revenue Gap */}
       <div className="p-6 bg-gradient-to-r from-red-50 via-amber-50 to-emerald-50 border-b border-slate-200/60 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-red-100 text-red-600 rounded-xl">
