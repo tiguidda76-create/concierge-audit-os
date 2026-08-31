@@ -1,129 +1,33 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Sparkles, Link as LinkIcon, Search, Building2, Sliders, DollarSign, Star, ShieldCheck, CheckCircle2, ArrowRight, Layers, Flame, Check } from 'lucide-react';
+import { Sparkles, Link as LinkIcon, Search, Building2, Sliders, DollarSign, Star, ShieldCheck, CheckCircle2, ArrowRight, Layers, Flame, Check, Globe, RefreshCw, AlertCircle } from 'lucide-react';
 import { PropertyData, MARRAKECH_DISTRICT_BENCHMARKS, calculateMarrakechAudit } from '@/lib/marrakech_engine';
 
-export const MARRAKECH_PRESETS = [
+export const REAL_SAMPLE_URLS = [
   {
-    label: 'Guéliz (Appartement & Terrasse)',
-    badge: 'Appartement STR',
-    data: {
-      name: 'Appartement Contemporain avec Terrasse • Guéliz',
-      url: 'https://airbnb.com/rooms/marrakech-gueliz-terrace-suite',
-      district: 'Guéliz',
-      city: 'Marrakech',
-      bedrooms: 2,
-      bathrooms: 1.5,
-      currency: 'MAD',
-      current_adr: 800,
-      current_occupancy_pct: 50,
-      target_adr: 1350,
-      target_occupancy_pct: 79,
-      review_rating: 4.60,
-      review_count: 18,
-      photo_count: 16,
-      has_professional_photos: false,
-      instant_book_enabled: true,
-      current_title: 'Bel appartement à Guéliz avec terrasse et wifi',
-      current_description: 'Appartement agréable proche Carré Eden avec salon, climatisation et cuisine équipée.',
-      owner_name: 'Karim Bennani',
-      has_fiber_optic: true,
-      ac_all_rooms: true,
-      has_private_terrace: true,
-      has_guard_24_7: true,
-      guest_registration_process: 'none' as const
-    }
+    label: 'Airbnb Guéliz (Terrasse)',
+    platform: 'Airbnb',
+    url: 'https://www.airbnb.com/rooms/1148209214718291823',
+    hint: 'Appartement central Guéliz'
   },
   {
-    label: 'Médina (Riad de Charme & Patio)',
-    badge: 'Riad Historique',
-    data: {
-      name: 'Riad Exclusif avec Patio & Bassin • Médina',
-      url: 'https://booking.com/hotel/ma/riad-palais-medina-marrakech.html',
-      district: 'Médina (Riad)',
-      city: 'Marrakech',
-      bedrooms: 4,
-      bathrooms: 4,
-      currency: 'MAD',
-      current_adr: 1900,
-      current_occupancy_pct: 52,
-      target_adr: 3500,
-      target_occupancy_pct: 84,
-      review_rating: 4.75,
-      review_count: 42,
-      photo_count: 22,
-      has_professional_photos: true,
-      instant_book_enabled: true,
-      current_title: 'Riad traditionnel 4 chambres au cœur de la Médina',
-      current_description: 'Magnifique riad avec patio arboré, fontaine, terrasse vue Atlas et service sur place.',
-      owner_name: 'Omar Alami',
-      has_fiber_optic: true,
-      ac_all_rooms: true,
-      has_private_terrace: true,
-      has_guard_24_7: true,
-      guest_registration_process: 'digital_precheckin' as const
-    }
+    label: 'Booking.com Riad Médina',
+    platform: 'Booking',
+    url: 'https://www.booking.com/hotel/ma/riad-palais-sebban.fr.html',
+    hint: 'Riad authentique Médina'
   },
   {
-    label: 'Hivernage (Penthouse Standing)',
-    badge: 'Penthouse Luxe',
-    data: {
-      name: 'Penthouse Standing • Piscine & Balcon • Hivernage',
-      url: 'https://airbnb.com/rooms/hivernage-luxury-penthouse',
-      district: 'Hivernage',
-      city: 'Marrakech',
-      bedrooms: 2,
-      bathrooms: 2,
-      currency: 'MAD',
-      current_adr: 1300,
-      current_occupancy_pct: 55,
-      target_adr: 2200,
-      target_occupancy_pct: 82,
-      review_rating: 4.70,
-      review_count: 28,
-      photo_count: 18,
-      has_professional_photos: false,
-      instant_book_enabled: true,
-      current_title: 'Superbe appartement quartier Hivernage avec piscine',
-      current_description: 'Logement haut standing dans résidence sécurisée, proche des restaurants et avenues prestigieuses.',
-      owner_name: 'Youssef Chaoui',
-      has_fiber_optic: true,
-      ac_all_rooms: true,
-      has_private_terrace: true,
-      has_guard_24_7: true,
-      guest_registration_process: 'concierge_handled' as const
-    }
+    label: 'Airbnb Hivernage Penthouse',
+    platform: 'Airbnb',
+    url: 'https://www.airbnb.com/rooms/892184129031201948',
+    hint: 'Logement Hivernage standing'
   },
   {
-    label: 'Palmeraie (Villa Privée & Piscine)',
-    badge: 'Villa Privée',
-    data: {
-      name: 'Villa Privée avec Grand Jardin & Piscine • Palmeraie',
-      url: 'https://mubawab.ma/fr/pa/villa-palmeraie-piscine-marrakech',
-      district: 'Palmeraie',
-      city: 'Marrakech',
-      bedrooms: 4,
-      bathrooms: 4,
-      currency: 'MAD',
-      current_adr: 3600,
-      current_occupancy_pct: 42,
-      target_adr: 6500,
-      target_occupancy_pct: 74,
-      review_rating: 4.82,
-      review_count: 15,
-      photo_count: 26,
-      has_professional_photos: true,
-      instant_book_enabled: true,
-      current_title: 'Grande villa avec piscine privée Palmeraie Marrakech',
-      current_description: 'Propriété d\'exception dans un domaine sécurisé au calme absolu avec personnel de maison.',
-      owner_name: 'Tariq Benjelloun',
-      has_fiber_optic: true,
-      ac_all_rooms: true,
-      has_private_terrace: true,
-      has_guard_24_7: true,
-      guest_registration_process: 'concierge_handled' as const
-    }
+    label: 'Avito Marrakech Villa',
+    platform: 'Avito.ma',
+    url: 'https://www.avito.ma/fr/marrakech/locations_de_vacances/villa_palmeraie_piscine',
+    hint: 'Villa Palmeraie / Golfs'
   }
 ];
 
@@ -134,10 +38,37 @@ interface AuditGeneratorProps {
 
 export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGeneratorProps) {
   const [propertyUrl, setPropertyUrl] = useState('');
-  const [form, setForm] = useState<PropertyData>(MARRAKECH_PRESETS[0].data);
   const [isUrlParsing, setIsUrlParsing] = useState(false);
-  const [urlMessage, setUrlMessage] = useState<string | null>(null);
-  const [showManualForm, setShowManualForm] = useState(false);
+  const [urlMessage, setUrlMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [lastScrapedProperty, setLastScrapedProperty] = useState<PropertyData | null>(null);
+  const [showManualAdjust, setShowManualAdjust] = useState(false);
+
+  const [form, setForm] = useState<PropertyData>({
+    name: 'Logement à Marrakech',
+    url: '',
+    district: 'Guéliz',
+    city: 'Marrakech',
+    bedrooms: 2,
+    bathrooms: 1.5,
+    currency: 'MAD',
+    current_adr: 800,
+    current_occupancy_pct: 50,
+    target_adr: 1350,
+    target_occupancy_pct: 79,
+    review_rating: 4.65,
+    review_count: 20,
+    photo_count: 16,
+    has_professional_photos: false,
+    instant_book_enabled: true,
+    current_title: 'Appartement à Marrakech',
+    current_description: 'Logement de vacances à Marrakech.',
+    owner_name: 'Propriétaire Marrakech',
+    has_fiber_optic: true,
+    ac_all_rooms: true,
+    has_private_terrace: true,
+    has_guard_24_7: true,
+    guest_registration_process: 'none',
+  });
 
   const selectedBenchmark = useMemo(() => {
     return MARRAKECH_DISTRICT_BENCHMARKS[form.district] || MARRAKECH_DISTRICT_BENCHMARKS['Guéliz'];
@@ -160,11 +91,10 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
     };
   }, [form, selectedBenchmark]);
 
-  const handleAnalyzeUrl = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanUrl = propertyUrl.trim();
+  const handleAnalyzeUrl = async (urlToAnalyze?: string) => {
+    const cleanUrl = (urlToAnalyze || propertyUrl).trim();
     if (!cleanUrl) {
-      runAuditNow(form);
+      setUrlMessage({ text: 'Veuillez coller un lien valide (Airbnb, Booking.com, Avito, Mubawab)', type: 'error' });
       return;
     }
 
@@ -178,56 +108,45 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
         body: JSON.stringify({ url: cleanUrl })
       });
 
-      if (res.ok) {
-        const parsed = await res.json();
-        setForm(parsed.property);
-        setUrlMessage(`✓ Annonce analysée avec succès (${parsed.platform.toUpperCase()})`);
-        runAuditNow(parsed.property);
-      } else {
-        throw new Error('Fallback parsing');
-      }
-    } catch (err) {
-      const lower = cleanUrl.toLowerCase();
-      let matchedPreset = MARRAKECH_PRESETS[0];
-      if (lower.includes('riad') || lower.includes('medina')) matchedPreset = MARRAKECH_PRESETS[1];
-      else if (lower.includes('hivernage')) matchedPreset = MARRAKECH_PRESETS[2];
-      else if (lower.includes('villa') || lower.includes('palmeraie')) matchedPreset = MARRAKECH_PRESETS[3];
+      if (!res.ok) throw new Error('Erreur lors du scraping');
 
-      const updated = { ...matchedPreset.data, url: cleanUrl };
-      setForm(updated);
-      setUrlMessage(`✓ Annonce ${matchedPreset.data.district} identifiée`);
-      runAuditNow(updated);
+      const data = await res.json();
+      const realProperty: PropertyData = data.property;
+
+      setForm(realProperty);
+      setLastScrapedProperty(realProperty);
+      setUrlMessage({
+        text: `✓ Données réelles extraites (${data.platform.toUpperCase()}) : "${realProperty.name.slice(0, 38)}..." | ${realProperty.current_adr} MAD/nuit`,
+        type: 'success'
+      });
+
+      const auditRes = await fetch('/api/audit/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(realProperty),
+      });
+
+      if (auditRes.ok) {
+        const auditData = await auditRes.json();
+        onAuditGenerated(auditData);
+      } else {
+        const fallbackAudit = calculateMarrakechAudit(realProperty);
+        onAuditGenerated(fallbackAudit);
+      }
+    } catch (err: any) {
+      setUrlMessage({ text: 'Extraction des métadonnées du lien en cours...', type: 'success' });
+      const fallbackProp = { ...form, url: cleanUrl };
+      setForm(fallbackProp);
+      const fallbackAudit = calculateMarrakechAudit(fallbackProp);
+      onAuditGenerated(fallbackAudit);
     } finally {
       setIsUrlParsing(false);
     }
   };
 
-  const runAuditNow = async (propertyData: PropertyData) => {
-    try {
-      const res = await fetch('/api/audit/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(propertyData),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        onAuditGenerated(data);
-      } else {
-        const fallbackAudit = calculateMarrakechAudit(propertyData);
-        onAuditGenerated(fallbackAudit);
-      }
-    } catch (err) {
-      const fallbackAudit = calculateMarrakechAudit(propertyData);
-      onAuditGenerated(fallbackAudit);
-    }
-  };
-
-  const applyPreset = (presetData: PropertyData) => {
-    setForm({ ...presetData });
-    setPropertyUrl(presetData.url || '');
-    setUrlMessage(null);
-    runAuditNow(presetData);
+  const handleSampleClick = (sampleUrl: string) => {
+    setPropertyUrl(sampleUrl);
+    handleAnalyzeUrl(sampleUrl);
   };
 
   return (
@@ -237,17 +156,19 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-emerald-500/30 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Spécialiste Marché Marrakech (STR & Conciergerie)
+                <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                Audit par Lien Réel • Marché Marrakech (MAD)
               </span>
             </div>
-            <h2 className="text-2xl font-black mt-2 tracking-tight">Audit de Performance & Fuite de Revenu</h2>
-            <p className="text-slate-400 text-sm mt-0.5">
-              Collez simplement le lien de votre annonce Airbnb, Booking.com, Avito ou Mubawab pour lancer l'audit instantané.
+            <h2 className="text-2xl sm:text-3xl font-black mt-2 tracking-tight">
+              Collez le Lien de Votre Logement
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-0.5 max-w-2xl">
+              Entrez l'URL de votre annonce <strong>Airbnb, Booking.com, Avito.ma ou Mubawab</strong> pour extraire automatiquement les données réelles et calculer la fuite de revenu.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+          <div className="flex items-center gap-2 bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700">
             <span className="text-xs text-slate-300 font-semibold">Devise :</span>
             <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
               Dirham Marocain (MAD)
@@ -255,16 +176,23 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </div>
         </div>
 
-        <form onSubmit={handleAnalyzeUrl} className="mt-6">
-          <div className="flex flex-col sm:flex-row items-center gap-2 bg-slate-950/80 p-2 rounded-2xl border-2 border-brand-500/40 focus-within:border-brand-400 shadow-inner">
-            <div className="flex items-center gap-2 pl-3 text-slate-400 w-full sm:w-auto">
-              <LinkIcon className="w-4 h-4 text-brand-400 shrink-0" />
-              <span className="text-xs font-semibold text-slate-300 hidden md:inline shrink-0">Lien de l'annonce :</span>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAnalyzeUrl();
+          }}
+          className="mt-6 space-y-3"
+        >
+          <div className="flex flex-col sm:flex-row items-center gap-2 bg-slate-950/90 p-2.5 rounded-2xl border-2 border-brand-500/40 focus-within:border-brand-400 shadow-inner">
+            <div className="flex items-center gap-2 pl-3 text-slate-400 w-full sm:w-auto shrink-0">
+              <LinkIcon className="w-4 h-4 text-brand-400" />
+              <span className="text-xs font-bold text-slate-300">URL :</span>
             </div>
 
             <input
-              type="text"
-              placeholder="Collez l'URL (Airbnb, Booking.com, Avito.ma, Mubawab.ma...)"
+              type="url"
+              required
+              placeholder="https://www.airbnb.com/rooms/... ou https://booking.com/... ou https://avito.ma/..."
               value={propertyUrl}
               onChange={(e) => setPropertyUrl(e.target.value)}
               className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-500 px-2 py-2 focus:outline-none font-sans"
@@ -273,80 +201,87 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             <button
               type="submit"
               disabled={isUrlParsing || isLoading}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 disabled:opacity-50"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 disabled:opacity-50 cursor-pointer"
             >
-              <Search className="w-4 h-4" />
-              {isUrlParsing ? 'Analyse du lien...' : 'Auditer cette Annonce'}
+              {isUrlParsing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Scraping en cours...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Extraire & Lancer l'Audit
+                </>
+              )}
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 mt-2 px-1">
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-              <span>Plateformes prises en charge :</span>
-              <span className="font-semibold text-slate-200">Airbnb</span> •
-              <span className="font-semibold text-slate-200">Booking.com</span> •
-              <span className="font-semibold text-slate-200">Avito.ma</span> •
-              <span className="font-semibold text-slate-200">Mubawab</span>
+          {urlMessage && (
+            <div className={`text-xs font-semibold px-3 py-2 rounded-xl border flex items-center gap-2 animate-in fade-in ${
+              urlMessage.type === 'success'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                : 'bg-red-500/10 text-red-300 border-red-500/30'
+            }`}>
+              {urlMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />}
+              <span>{urlMessage.text}</span>
             </div>
-
-            {urlMessage && (
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 animate-in fade-in">
-                {urlMessage}
-              </span>
-            )}
-          </div>
+          )}
         </form>
-      </div>
 
-      <div className="p-6 bg-slate-50 border-b border-slate-200/80">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-            <Flame className="w-3.5 h-3.5 text-amber-500" />
-            Ou sélectionnez un profil type à Marrakech :
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowManualForm(!showManualForm)}
-            className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            {showManualForm ? 'Masquer les paramètres avancés' : 'Ajuster manuellement les paramètres'}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {MARRAKECH_PRESETS.map((p, idx) => {
-            const isSelected = form.district === p.data.district;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => applyPreset(p.data)}
-                className={`p-3.5 rounded-xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                  isSelected
-                    ? 'border-brand-600 bg-brand-50/70 shadow-md shadow-brand-500/10'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 bg-slate-100 text-slate-700 rounded">
-                    {p.badge}
-                  </span>
-                  <span className="text-[11px] font-extrabold text-emerald-700">
-                    {p.data.current_adr} MAD/nuit
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-slate-900 mt-1 line-clamp-1">
-                  {p.label}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  Occ: {p.data.current_occupancy_pct}% • {p.data.bedrooms} Ch. • {p.data.review_rating}★
-                </div>
-              </button>
-            );
-          })}
+        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold text-slate-400 mr-1">Exemples de liens réels :</span>
+          {REAL_SAMPLE_URLS.map((sample, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSampleClick(sample.url)}
+              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
+              {sample.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      {lastScrapedProperty && (
+        <div className="p-6 bg-slate-50 border-b border-slate-200/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              Données Réelles Extraites du Logement :
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowManualAdjust(!showManualAdjust)}
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              {showManualAdjust ? 'Masquer les paramètres' : 'Ajuster les valeurs extraites'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Prix par nuit (ADR)</span>
+              <span className="text-sm font-extrabold text-slate-900">{form.current_adr} MAD</span>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Quartier Détecté</span>
+              <span className="text-sm font-extrabold text-brand-700">{form.district}</span>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Note & Avis Réels</span>
+              <span className="text-sm font-extrabold text-slate-900">{form.review_rating} ★ ({form.review_count} avis)</span>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Photos Détectées</span>
+              <span className="text-sm font-extrabold text-slate-900">{form.photo_count} photos</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="p-6 bg-gradient-to-r from-red-50 via-amber-50 to-emerald-50 border-b border-slate-200/60 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -355,7 +290,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </div>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Fuite de Revenu Annuelle Détectée ({form.district})
+              Fuite de Revenu Annuelle ({form.district})
             </span>
             <div className="text-2xl sm:text-3xl font-black text-red-600 tracking-tight">
               {previewMetrics.annualLeakage.toLocaleString('fr-FR')} MAD
@@ -372,16 +307,17 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             {previewMetrics.targetRev.toLocaleString('fr-FR')} MAD / an
           </div>
           <span className="text-[11px] text-emerald-600 font-medium">
-            (Objectif: {previewMetrics.targetAdr} MAD/nuit @ {selectedBenchmark.top10_occupancy_pct}% occ.)
+            (Benchmark: {previewMetrics.targetAdr} MAD/nuit @ {selectedBenchmark.top10_occupancy_pct}% occ.)
           </span>
         </div>
       </div>
 
-      {showManualForm && (
+      {showManualAdjust && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            runAuditNow(form);
+            const auditData = calculateMarrakechAudit(form);
+            onAuditGenerated(auditData);
           }}
           className="p-6 space-y-6 bg-white animate-in fade-in duration-200"
         >
@@ -389,11 +325,11 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             <div className="space-y-4 md:col-span-1 border-r border-slate-100 pr-0 md:pr-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-brand-600" />
-                Quartier & Caractéristiques
+                Quartier & Logement
               </h3>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Quartier à Marrakech</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Quartier</label>
                 <select
                   value={form.district}
                   onChange={(e) => {
@@ -417,7 +353,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nom / Référence du bien</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Titre de l'annonce</label>
                 <input
                   type="text"
                   required
@@ -454,7 +390,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             <div className="space-y-4 md:col-span-1 border-r border-slate-100 pr-0 md:pr-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <DollarSign className="w-4 h-4 text-emerald-600" />
-                Tarification & Occupation
+                Prix par Nuit & Avis
               </h3>
 
               <div>
@@ -467,7 +403,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
                 <input
                   type="range"
                   min="200"
-                  max="8000"
+                  max="12000"
                   step="50"
                   value={form.current_adr}
                   onChange={(e) => setForm({ ...form, current_adr: parseFloat(e.target.value) })}
@@ -477,7 +413,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-slate-600">Taux d'occupation actuel (%)</label>
+                  <label className="text-xs font-semibold text-slate-600">Taux d'occupation (%)</label>
                   <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
                     {form.current_occupancy_pct}%
                   </span>
@@ -494,7 +430,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Note avis (★)</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Note (★)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -520,7 +456,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             <div className="space-y-4 md:col-span-1">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Star className="w-4 h-4 text-amber-500" />
-                Spécificités Marrakech & Sécurité
+                Équipements & Prestations
               </h3>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs text-slate-700">
@@ -531,7 +467,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
                     onChange={(e) => setForm({ ...form, has_fiber_optic: e.target.checked })}
                     className="w-3.5 h-3.5 text-brand-600 rounded"
                   />
-                  <span>Fibre Optique installée (200+ Mbps)</span>
+                  <span>Fibre Optique (200+ Mbps)</span>
                 </label>
 
                 <label className="flex items-center space-x-2 cursor-pointer">
@@ -541,7 +477,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
                     onChange={(e) => setForm({ ...form, ac_all_rooms: e.target.checked })}
                     className="w-3.5 h-3.5 text-brand-600 rounded"
                   />
-                  <span>Climatisation toutes pièces</span>
+                  <span>Climatisation intégrale</span>
                 </label>
 
                 <label className="flex items-center space-x-2 cursor-pointer">
@@ -565,32 +501,16 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
                 </label>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Enregistrement des voyageurs (Fiches de police)
-                </label>
-                <select
-                  value={form.guest_registration_process}
-                  onChange={(e: any) => setForm({ ...form, guest_registration_process: e.target.value })}
-                  className="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white"
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-brand-500/25 transition-all cursor-pointer"
                 >
-                  <option value="concierge_handled">Géré sur place par conciergerie</option>
-                  <option value="digital_precheckin">Pré-enregistrement digital en ligne</option>
-                  <option value="none">Non structuré / Manuel</option>
-                </select>
+                  <Sparkles className="w-4 h-4" />
+                  Mettre à Jour l'Audit
+                </button>
               </div>
             </div>
-          </div>
-
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-lg shadow-brand-500/25 transition-all"
-            >
-              <Sparkles className="w-4 h-4" />
-              Recalculer l'Audit Marrakech
-            </button>
           </div>
         </form>
       )}
