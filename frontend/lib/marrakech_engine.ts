@@ -115,8 +115,138 @@ export interface PropertyData {
   guest_registration_process: 'concierge_handled' | 'digital_precheckin' | 'none';
 }
 
+export interface AdrCalculatorParams {
+  platform: 'airbnb' | 'booking' | 'avito' | 'mubawab' | 'manual';
+  rawDisplayedPrice: number;
+  isMonthlyRate?: boolean;
+  district: string;
+  bedrooms: number;
+  hasFiberOptic: boolean;
+  hasAcAllRooms: boolean;
+  hasPrivateTerrace: boolean;
+  hasPrivatePool: boolean;
+  hasGuard247: boolean;
+  reviewScore: number;
+}
+
+export interface AdrValuationResult {
+  rawPrice: number;
+  platform: string;
+  platformCommissionPct: number;
+  platformCommissionDeduction: number;
+  touristTaxDeductionMad: number;
+  netOwnerDailyRateMad: number;
+  
+  seasonalAdr: {
+    peakSeasonMad: number;
+    shoulderSeasonMad: number;
+    lowSeasonMad: number;
+    weightedAnnualAdrMad: number;
+  };
+
+  optimizedYieldTargetMad: number;
+  amenityMultipliersTotalPct: number;
+  valuationInsights: string[];
+}
+
+export function calculateRealAdrBreakdown(params: AdrCalculatorParams): AdrValuationResult {
+  let baseDailyRate = params.rawDisplayedPrice;
+
+  if (params.isMonthlyRate || (params.rawDisplayedPrice > 4500 && (params.platform === 'avito' || params.platform === 'mubawab'))) {
+    baseDailyRate = Math.round((params.rawDisplayedPrice * 1.55) / 30);
+  }
+
+  let commPct = 0;
+  let touristTaxMad = 0;
+
+  switch (params.platform) {
+    case 'airbnb':
+      commPct = 15;
+      touristTaxMad = 0;
+      break;
+    case 'booking':
+      commPct = 19;
+      touristTaxMad = Math.round(params.bedrooms * 2 * 25);
+      break;
+    case 'avito':
+      commPct = 0;
+      touristTaxMad = 0;
+      break;
+    case 'mubawab':
+      commPct = 0;
+      touristTaxMad = 0;
+      break;
+    default:
+      commPct = 5;
+      touristTaxMad = 0;
+      break;
+  }
+
+  const commissionDeduction = Math.round((baseDailyRate * commPct) / 100);
+  const netDailyRate = Math.max(150, Math.round(baseDailyRate - commissionDeduction - (touristTaxMad > 0 ? touristTaxMad / 2.8 : 0)));
+
+  let multiplierPct = 0;
+  const insights: string[] = [];
+
+  if (params.hasFiberOptic) {
+    multiplierPct += 10;
+    insights.push('+10% Prime Fibre Optique 200M (attractivité digital nomads)');
+  }
+  if (params.hasAcAllRooms) {
+    multiplierPct += 15;
+    insights.push('+15% Climatisation intégrale (indispensable pour l\'été à Marrakech)');
+  }
+  if (params.hasPrivateTerrace) {
+    multiplierPct += 18;
+    insights.push('+18% Terrasse / Solarium privatif avec vue dégagée');
+  }
+  if (params.hasPrivatePool) {
+    multiplierPct += 40;
+    insights.push('+40% Piscine privée / Bassin de Riad');
+  }
+  if (params.hasGuard247) {
+    multiplierPct += 10;
+    insights.push('+10% Sécurité & Gardiennage 24/7 (rassurance voyageur)');
+  }
+
+  if (params.reviewScore >= 4.90) {
+    multiplierPct += 12;
+    insights.push('+12% Badge d\'excellence / Note 4.9+ ★');
+  } else if (params.reviewScore < 4.60) {
+    multiplierPct -= 15;
+    insights.push('-15% Pénalité d\'algorithme due à une note < 4.6 ★');
+  }
+
+  const peakAdr = Math.round(netDailyRate * 1.48 * (1 + multiplierPct / 100));
+  const shoulderAdr = Math.round(netDailyRate * (1 + multiplierPct / 100));
+  const lowSeasonFactor = params.hasPrivatePool || params.hasAcAllRooms ? 0.78 : 0.65;
+  const lowAdr = Math.round(netDailyRate * lowSeasonFactor * (1 + multiplierPct / 100));
+
+  const weightedAnnualAdr = Math.round((peakAdr * 0.48) + (shoulderAdr * 0.32) + (lowAdr * 0.20));
+  const benchmark = MARRAKECH_DISTRICT_BENCHMARKS[params.district] || MARRAKECH_DISTRICT_BENCHMARKS['Guéliz'];
+  const optimizedYieldTarget = Math.max(weightedAnnualAdr, benchmark.top10_adr_mad);
+
+  return {
+    rawPrice: params.rawDisplayedPrice,
+    platform: params.platform,
+    platformCommissionPct: commPct,
+    platformCommissionDeduction: commissionDeduction,
+    touristTaxDeductionMad: touristTaxMad,
+    netOwnerDailyRateMad: netDailyRate,
+    seasonalAdr: {
+      peakSeasonMad: peakAdr,
+      shoulderSeasonMad: shoulderAdr,
+      lowSeasonMad: lowAdr,
+      weightedAnnualAdrMad: weightedAnnualAdr,
+    },
+    optimizedYieldTargetMad: optimizedYieldTarget,
+    amenityMultipliersTotalPct: multiplierPct,
+    valuationInsights: insights,
+  };
+}
+
 export function calculateMarrakechAudit(prop: PropertyData) {
-  const auditId = prop.id || `aud_mrk_${Math.random().toString(36).substring(2, 9)}`;
+  const auditId = prop.id || `aud_${Math.random().toString(36).substring(2, 9)}`;
   const benchmark = MARRAKECH_DISTRICT_BENCHMARKS[prop.district] || MARRAKECH_DISTRICT_BENCHMARKS['Guéliz'];
   
   const targetAdr = prop.target_adr && prop.target_adr > 0 ? prop.target_adr : benchmark.top10_adr_mad;
@@ -132,13 +262,9 @@ export function calculateMarrakechAudit(prop: PropertyData) {
   const occGap = Math.round(targetOcc - prop.current_occupancy_pct);
   const leakagePct = targetAnnualRev > 0 ? Number(((annualLeakage / targetAnnualRev) * 100).toFixed(1)) : 0;
 
-  // Pricing Score (30%)
-  const adrRatio = prop.current_adr / targetAdr;
-  const occRatio = prop.current_occupancy_pct / targetOcc;
-  let pricingScore = Math.round((adrRatio * 45) + (occRatio * 45) + (prop.current_adr >= benchmark.market_avg_adr_mad ? 10 : 0));
+  let pricingScore = Math.round(((prop.current_adr / targetAdr) * 45) + ((prop.current_occupancy_pct / targetOcc) * 45) + (prop.current_adr >= benchmark.market_avg_adr_mad ? 10 : 0));
   pricingScore = Math.max(20, Math.min(98, pricingScore));
 
-  // SEO & Content Score (25%)
   let seoScore = 35;
   const titleLen = (prop.current_title || '').length;
   if (titleLen >= 32 && titleLen <= 55) seoScore += 25;
@@ -150,14 +276,12 @@ export function calculateMarrakechAudit(prop: PropertyData) {
   if (prop.current_description && prop.current_description.length > 200) seoScore += 15;
   seoScore = Math.max(20, Math.min(96, seoScore));
 
-  // Visuals Score (25%)
   let visualScore = Math.min(45, prop.photo_count * 2.5);
   if (prop.has_professional_photos) visualScore += 45;
   else visualScore += 10;
   if (prop.has_private_terrace) visualScore += 5;
   visualScore = Math.max(25, Math.min(98, Math.round(visualScore)));
 
-  // Reputation & Trust Score (20%)
   let repScore = 40;
   if (prop.review_rating >= 4.90) repScore += 45;
   else if (prop.review_rating >= 4.80) repScore += 35;
@@ -234,7 +358,7 @@ export function calculateMarrakechAudit(prop: PropertyData) {
         score: repScore,
         weight_pct: 20,
         status: formatStatus(repScore),
-        insight: `Note de ${prop.review_rating} ★ (${prop.review_count} avis). Nécessite une régularité de 5★ pour le badge Coup de Cœur Voyageur.`,
+        insight: `Note réelle de ${prop.review_rating} ★ (${prop.review_count} avis). Nécessite une régularité de 5★ pour le badge Coup de Cœur Voyageur.`,
         action_item: 'Automatiser le message de bienvenue et le suivi post-check-in pour maximiser les avis 5 étoiles.'
       }
     },
@@ -278,12 +402,12 @@ export function generateMarrakechSolutions(audit: any) {
   const district = prop.district || 'Guéliz Marrakech';
   const beds = prop.bedrooms || 2;
   const baths = prop.bathrooms || 1.5;
-  const hasTerrace = prop.has_private_terrace !== false;
   const hasPool = prop.name.toLowerCase().includes('riad') || prop.name.toLowerCase().includes('villa') || prop.district === 'Palmeraie' || prop.district === 'Médina (Riad)';
+  const cleanOriginalName = prop.name.replace(/[★•|-].*$/, '').trim();
 
   const titleA = hasPool
-    ? `★ Riad d'Exception w/ Piscine Privée • ${district}`
-    : `★ Luxueuse Suite avec Terrasse • Fibre & Clim • ${district}`;
+    ? `★ ${cleanOriginalName} w/ Piscine Privée • ${district}`
+    : `★ ${cleanOriginalName} • Terrasse & Fibre • ${district}`;
     
   const titleB = `Superbe ${beds}Ch avec Vue & Rooftop • Design Beldi Chic • ${district}`;
   const titleC = `Oasis de Calme à 5 Min du Centre • Gardien 24/7 • ${district}`;
@@ -294,21 +418,21 @@ export function generateMarrakechSolutions(audit: any) {
       title: titleA.substring(0, 50),
       character_count: Math.min(50, titleA.length),
       target_channel: 'Airbnb & Booking Mobile',
-      strategy_note: 'Format court accrocheur avec symbole ★ et arguments clés (Terrasse/Piscine + Fibre).'
+      strategy_note: `Format court accrocheur intégrant "${cleanOriginalName}" et les atouts clés de ${district}.`
     },
     {
       variant_type: 'Amenity & Prestige Beldi Chic',
       title: titleB.substring(0, 55),
       character_count: Math.min(55, titleB.length),
       target_channel: 'Recherche Google & OTA Premium',
-      strategy_note: 'Met en valeur la capacité, le design raffiné et les atouts uniques du bien.'
+      strategy_note: `Met en valeur les ${beds} chambres, le design raffiné et l'emplacement prestige à ${district}.`
     },
     {
       variant_type: 'Sécurité, Calme & Emplacement Privilégié',
       title: titleC.substring(0, 50),
       character_count: Math.min(50, titleC.length),
       target_channel: 'Clientèle Familles & Séjours Longs',
-      strategy_note: 'Rassure immédiatement sur le calme, l\'accessibilité et le gardiennage 24/7.'
+      strategy_note: `Rassure immédiatement sur le calme, l'accès rapide et le gardiennage 24/7.`
     }
   ];
 
@@ -316,14 +440,14 @@ export function generateMarrakechSolutions(audit: any) {
     {
       section_id: 'hook_summary',
       heading: '✦ BIENVENUE DANS VOTRE HAVRE DE PAIX À MARRAKECH',
-      content: `Découvrez une expérience d'exception au cœur de ${district}. Conçu pour les voyageurs exigeants, nomades digitaux et familles en quête de sérénité, ce sublime logement allie le raffinement de l'hospitalité marocaine et le confort moderne haut de gamme. Profitez d'une ambiance lumineuse, d'un calme absolu et de prestations de conciergerie 5 étoiles.`,
+      content: `Découvrez une expérience d'exception à ${prop.name}. Conçu pour les voyageurs exigeants, nomades digitaux et familles en quête de sérénité à ${district}, ce logement allie le raffinement de l'hospitalité marocaine et le confort moderne haut de gamme. Profitez d'une ambiance lumineuse, d'un calme absolu et de prestations de conciergerie 5 étoiles.`,
       char_count: 360,
       purpose: 'Accroche directe visible avant le repli \'En savoir plus\' sur smartphone.'
     },
     {
       section_id: 'the_space',
       heading: '✦ LES ESPACES & SUITES PARENTALES',
-      content: `• Suite Principale : Lit King-Size grand confort avec literie haut de gamme en satin de coton égyptien.\n• Deuxième Chambre : Literie Queen modulable avec rideaux occultants pour un sommeil réparateur.\n• Salon Beldi Contemporain : Espace de vie baigné de lumière naturelle avec Smart TV 55" 4K (Netflix & IPTV).\n• Salles de Bain : Douche à l'italienne effet pluie, peignoirs douillets et produits d'accueil artisanaux à la fleur d'oranger.`,
+      content: `• Suite Principale : Lit King-Size grand confort avec literie haut de gamme en satin de coton égyptien.\n• Chambres Additionnelles : ${beds > 1 ? `${beds - 1} chambre(s) modulable(s) avec rideaux occultants.` : 'Espace salon convertible avec literie premium.'}\n• Salon Beldi Contemporain : Espace de vie baigné de lumière naturelle avec Smart TV 55" 4K (Netflix & IPTV).\n• Salles de Bain : ${baths} salle(s) de bain avec douche à l'italienne effet pluie et produits d'accueil artisanaux à la fleur d'oranger.`,
       char_count: 480,
       purpose: 'Clarifie la disposition et garantit la promesse de literie et de propreté.'
     },
@@ -349,7 +473,7 @@ export function generateMarrakechSolutions(audit: any) {
     {
       position: 1,
       shot_type: 'Photo Héro Principale (Salon ou Terrasse)',
-      subject: `Espace de vie principal baigné de soleil - ${district}`,
+      subject: `Espace de vie principal de ${cleanOriginalName} - ${district}`,
       staging_notes: 'Lumière naturelle dorée, coussins gonflés, plantes vertes, table basse dressée avec thé marocain.',
       recommended_caption: `Votre oasis de confort et de lumière à ${district}, Marrakech.`
     },
@@ -391,7 +515,7 @@ export function generateMarrakechSolutions(audit: any) {
     description_blocks: blocks,
     full_compiled_description: fullCompiled,
     photo_strategy: photoStrategy,
-    pricing_strategy_summary: `Tarif basse saison conseillé : ${Math.round(prop.current_adr * 1.15)} MAD/nuit | Haute saison / Week-ends : ${Math.round(audit.financials.target_annual_revenue / 365 / (audit.property_input.target_occupancy_pct / 100 || 0.78))} MAD/nuit avec séjour minimum de 2 nuits.`,
+    pricing_strategy_summary: `Tarif actuel extrait : ${prop.current_adr} MAD/nuit | Cible Yield Haute Saison : ${Math.round(audit.financials.target_annual_revenue / 365 / (audit.property_input.target_occupancy_pct / 100 || 0.78))} MAD/nuit avec séjour minimum de 2 nuits le week-end.`,
     status: 'DRAFT'
   };
 }

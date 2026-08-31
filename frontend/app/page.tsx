@@ -5,8 +5,9 @@ import AuditGenerator from '@/components/AuditGenerator';
 import AuditView from '@/components/AuditView';
 import OptimizationReviewRoom from '@/components/OptimizationReviewRoom';
 import ChannelSyncModal from '@/components/ChannelSyncModal';
-import { generateMarrakechSolutions } from '@/lib/marrakech_engine';
-import { Sparkles, ArrowRight, RefreshCw, Zap, ShieldCheck } from 'lucide-react';
+import RealAdrCalculatorTool from '@/components/RealAdrCalculatorTool';
+import { generateMarrakechSolutions, calculateMarrakechAudit } from '@/lib/marrakech_engine';
+import { Sparkles, ArrowRight, RefreshCw, Zap, Calculator } from 'lucide-react';
 
 export default function Home() {
   const [audit, setAudit] = useState<any | null>(null);
@@ -18,9 +19,24 @@ export default function Home() {
   const [activeSyncTitle, setActiveSyncTitle] = useState('');
   const [activeSyncDesc, setActiveSyncDesc] = useState('');
 
+  const [showAdrTool, setShowAdrTool] = useState(false);
+
   const handleAuditGenerated = (data: any) => {
     setAudit(data);
     setSolution(null);
+    setTimeout(() => {
+      const el = document.getElementById('audit-results-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  };
+
+  const handleApplyAdrFromTool = (newAdr: number, district: string) => {
+    if (audit) {
+      const updatedProp = { ...audit.property_input, current_adr: newAdr, district };
+      const updatedAudit = calculateMarrakechAudit(updatedProp);
+      setAudit(updatedAudit);
+    }
+    setShowAdrTool(false);
     setTimeout(() => {
       const el = document.getElementById('audit-results-section');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -111,6 +127,15 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowAdrTool(!showAdrTool)}
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200 px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all cursor-pointer"
+            >
+              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+              Calculateur ADR Gratuit
+            </button>
+
             {audit && (
               <button
                 type="button"
@@ -143,6 +168,18 @@ export default function Home() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        {showAdrTool && (
+          <section className="animate-in fade-in slide-in-from-top-4 duration-300">
+            <RealAdrCalculatorTool
+              initialDistrict={audit?.property_input?.district || 'Guéliz'}
+              initialPrice={audit?.property_input?.current_adr || 1000}
+              initialPlatform={audit?.property_input?.source_platform || 'airbnb'}
+              onApplyAdrToAudit={handleApplyAdrFromTool}
+              onClose={() => setShowAdrTool(false)}
+            />
+          </section>
+        )}
+
         <section>
           <AuditGenerator
             onAuditGenerated={handleAuditGenerated}
