@@ -6,8 +6,11 @@ import AuditView from '@/components/AuditView';
 import OptimizationReviewRoom from '@/components/OptimizationReviewRoom';
 import ChannelSyncModal from '@/components/ChannelSyncModal';
 import RealAdrCalculatorTool from '@/components/RealAdrCalculatorTool';
+import PlaybookModal from '@/components/PlaybookModal';
+import AiTeamCockpit from '@/components/AiTeamCockpit';
+import OwnerCloserDrawer from '@/components/OwnerCloserDrawer';
 import { generateMarrakechSolutions, calculateMarrakechAudit } from '@/lib/marrakech_engine';
-import { Sparkles, ArrowRight, RefreshCw, Zap, Calculator } from 'lucide-react';
+import { Sparkles, ArrowRight, RefreshCw, Zap, Calculator, BookOpen, Bot } from 'lucide-react';
 
 export default function Home() {
   const [audit, setAudit] = useState<any | null>(null);
@@ -20,6 +23,8 @@ export default function Home() {
   const [activeSyncDesc, setActiveSyncDesc] = useState('');
 
   const [showAdrTool, setShowAdrTool] = useState(false);
+  const [playbookOpen, setPlaybookOpen] = useState(false);
+  const [ownerCloserOpen, setOwnerCloserOpen] = useState(false);
 
   const handleAuditGenerated = (data: any) => {
     setAudit(data);
@@ -43,10 +48,13 @@ export default function Home() {
     }, 150);
   };
 
-  const handleLaunchSolutions = async (auditId: string) => {
+  const handleLaunchSolutions = async (auditId?: string) => {
+    const targetAuditId = auditId || audit?.audit_id;
+    if (!targetAuditId) return;
+
     setIsSolutionLoading(true);
     try {
-      const res = await fetch(`/api/audit/${auditId}/generate-solutions`, {
+      const res = await fetch(`/api/audit/${targetAuditId}/generate-solutions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ audit }),
@@ -75,9 +83,9 @@ export default function Home() {
     }
   };
 
-  const handleOpenSyncModal = (title: string, desc: string) => {
-    setActiveSyncTitle(title);
-    setActiveSyncDesc(desc);
+  const handleOpenSyncModal = (title?: string, desc?: string) => {
+    setActiveSyncTitle(title || audit?.property_input?.current_title || 'Titre Annonce');
+    setActiveSyncDesc(desc || audit?.property_input?.current_description || 'Description');
     setSyncModalOpen(true);
   };
 
@@ -100,12 +108,12 @@ export default function Home() {
                 CONCIERGE AUDIT <span className="text-brand-400">OS</span>
               </span>
               <span className="text-[10px] text-slate-400 block -mt-1 font-mono uppercase tracking-widest">
-                Marrakech STR Revenue & Multi-Agent Engine
+                Marrakech STR Revenue & 5-Agent Suite
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 text-xs font-semibold">
+          <div className="hidden lg:flex items-center gap-2 text-xs font-semibold">
             <div className={`px-3 py-1 rounded-full flex items-center gap-1.5 ${
               audit ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
             }`}>
@@ -122,18 +130,27 @@ export default function Home() {
             <div className={`px-3 py-1 rounded-full flex items-center gap-1.5 ${
               solution?.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
             }`}>
-              3. Dispatch & PMS Sync
+              3. Dispatch & Mandat Closer
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setPlaybookOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-all cursor-pointer shadow-sm"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-brand-400" />
+              <span className="hidden sm:inline">Guide &</span> Playbook
+            </button>
+
             <button
               type="button"
               onClick={() => setShowAdrTool(!showAdrTool)}
               className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200 px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all cursor-pointer"
             >
               <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-              Calculateur ADR Gratuit
+              <span className="hidden sm:inline">Calculateur</span> ADR
             </button>
 
             {audit && (
@@ -143,13 +160,9 @@ export default function Home() {
                 className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 transition-all cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                Nouvel Audit
+                Nouveau
               </button>
             )}
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Marrakech v2.4 Online
-            </span>
           </div>
         </div>
       </header>
@@ -157,13 +170,13 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-brand-300 mb-4">
           <Zap className="w-3.5 h-3.5 text-brand-400" />
-          Système Multi-Agents Dédié à la Conciergerie à Marrakech
+          Suite Autonome de 5 Agents IA Dédiée à la Conciergerie à Marrakech
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight max-w-4xl mx-auto leading-tight">
           Transformez vos annonces à Marrakech en <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-cyan-300 to-emerald-400">Actifs à Haut Rendement</span>
         </h1>
         <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto mt-4 leading-relaxed">
-          Audit quantitatif des fuites de revenus, benchmarking par quartier (Guéliz, Médina, Hivernage, Palmeraie), copywriting OTA haute conversion et synchronisation PMS.
+          Audit quantitatif des fuites de revenus, benchmarking réaliste par chambre, copywriting OTA haute conversion et closing de mandats de gestion.
         </p>
       </section>
 
@@ -172,7 +185,7 @@ export default function Home() {
           <section className="animate-in fade-in slide-in-from-top-4 duration-300">
             <RealAdrCalculatorTool
               initialDistrict={audit?.property_input?.district || 'Guéliz'}
-              initialPrice={audit?.property_input?.current_adr || 1000}
+              initialPrice={audit?.property_input?.current_adr || 850}
               initialPlatform={audit?.property_input?.source_platform || 'airbnb'}
               onApplyAdrToAudit={handleApplyAdrFromTool}
               onClose={() => setShowAdrTool(false)}
@@ -186,6 +199,18 @@ export default function Home() {
             isLoading={isAuditLoading}
           />
         </section>
+
+        {audit && (
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <AiTeamCockpit
+              audit={audit}
+              onTriggerAgent2={() => handleLaunchSolutions(audit.audit_id)}
+              onOpenSyncModal={() => handleOpenSyncModal()}
+              onOpenOwnerCloser={() => setOwnerCloserOpen(true)}
+              isSolutionLoading={isSolutionLoading}
+            />
+          </section>
+        )}
 
         {audit && (
           <section id="audit-results-section" className="animate-in fade-in slide-in-from-bottom-6 duration-300">
@@ -214,6 +239,17 @@ export default function Home() {
           selectedTitle={activeSyncTitle}
           selectedDescription={activeSyncDesc}
           onClose={() => setSyncModalOpen(false)}
+        />
+      )}
+
+      {playbookOpen && (
+        <PlaybookModal onClose={() => setPlaybookOpen(false)} />
+      )}
+
+      {ownerCloserOpen && audit && (
+        <OwnerCloserDrawer
+          audit={audit}
+          onClose={() => setOwnerCloserOpen(false)}
         />
       )}
     </main>
