@@ -53,7 +53,7 @@ export default function PlaybookModal({ onClose }: PlaybookModalProps) {
           {[
             { id: 'methodology', label: '1. Méthode & Calculs Mathématiques', icon: BarChart3 },
             { id: 'platforms', label: '2. Normalisation Plateformes (Airbnb/Booking/Avito)', icon: Globe },
-            { id: 'ai_team', label: '3. Architecture des 5 Agents IA', icon: Bot },
+            { id: 'ai_team', label: '3. Architecture des 5 Agents IA & Multi-PMS', icon: Bot },
             { id: 'scripts', label: '4. Scripts de Vente & Signature Mandat (20-25%)', icon: PhoneCall },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -183,7 +183,7 @@ export default function PlaybookModal({ onClose }: PlaybookModalProps) {
             </div>
           )}
 
-          {/* TAB 3: AI TEAM ARCHITECTURE */}
+          {/* TAB 3: AI TEAM ARCHITECTURE & MULTI-PMS DEEP DIVE */}
           {activeTab === 'ai_team' && (
             <div className="space-y-4">
               <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-2">
@@ -196,7 +196,7 @@ export default function PlaybookModal({ onClose }: PlaybookModalProps) {
                 </p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {[
                   {
                     num: 'Agent 1',
@@ -245,6 +245,86 @@ export default function PlaybookModal({ onClose }: PlaybookModalProps) {
                   </div>
                 ))}
               </div>
+
+              {/* DETAILED PMS INTEGRATION GUIDE */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 mt-6">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-brand-400" />
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                      Guide Détaillé : Synchronisation Multi-PMS (Hostaway, Guesty, Smoobu, Channex)
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                    Open-API Ready
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Hostaway */}
+                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-xs text-brand-300">1. Hostaway API</span>
+                      <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">REST v1</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <strong>Étapes de connexion :</strong>
+                      <br />1. Récupérez votre <code>Account ID</code> et <code>API Secret</code> dans <em>Hostaway &gt; Settings &gt; Hostaway API</em>.
+                      <br />2. L'Agent 3 envoie une requête <code>PUT /v1/listings/{'{listingId}'}</code> avec le nouveau titre, la description en 4 blocs et la grille tarifaire calibrée.
+                      <br />3. Hostaway répercute instantanément le contenu sur Airbnb, Booking.com et VRBO.
+                    </p>
+                  </div>
+
+                  {/* Guesty */}
+                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-xs text-emerald-300">2. Guesty Open API</span>
+                      <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">Open-API</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <strong>Étapes de connexion :</strong>
+                      <br />1. Générez un <code>Bearer Token</code> dans <em>Guesty &gt; Integrations &gt; Open API</em>.
+                      <br />2. L'Agent 3 synchronise via <code>PUT /v1/listings/{'{id}'}</code> en mettant à jour les champs <code>title</code>, <code>publicDescription.summary</code> et <code>publicDescription.space</code>.
+                      <br />3. Vos multi-calendriers et grilles tarifaires de Marrakech sont synchronisés en direct.
+                    </p>
+                  </div>
+
+                  {/* Smoobu */}
+                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-xs text-amber-300">3. Smoobu Channel Manager</span>
+                      <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">API Key</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <strong>Étapes de connexion :</strong>
+                      <br />1. Allez dans <em>Paramètres &gt; Pour les développeurs &gt; Clé API</em>.
+                      <br />2. L'Agent 3 met à jour les informations du logement via <code>POST /api/apartments/{'{id}'}</code>.
+                      <br />3. Les disponibilités et règles de séjour minimum (ex: 2 nuits le week-end) sont immédiatement verrouillées.
+                    </p>
+                  </div>
+
+                  {/* Channex */}
+                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-xs text-blue-300">4. Channex.io (Direct Engine)</span>
+                      <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">Channel Engine</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <strong>Étapes de connexion :</strong>
+                      <br />1. Obtenez votre <code>API Key</code> et votre <code>Property ID</code> sur le dashboard Channex.
+                      <br />2. L'Agent 3 synchronise la passerelle via <code>POST /api/v1/properties/{'{id}'}/content</code>.
+                      <br />3. Diffusion directe vers Airbnb, Booking, Agoda, Expedia et moteurs de réservation directe.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span><strong>Sécurité des Flux :</strong> Toutes les synchronisations sont protégées par chiffrement HTTPS et validation HITL (Human-in-the-Loop) obligatoire par le gestionnaire.</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -261,57 +341,55 @@ export default function PlaybookModal({ onClose }: PlaybookModalProps) {
                 </p>
               </div>
 
-              {/* Script 1: Phone Pitch */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+              {/* Script 1: Cold Call 30s */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <PhoneCall className="w-3.5 h-3.5 text-brand-400" />
-                    Script Appel Téléphonique (30 Secondes d'Accroche)
+                  <span className="text-xs font-bold uppercase tracking-wider text-brand-400">
+                    Script 1 : Appel Téléphonique Direct (30 Secondes)
                   </span>
                   <button
                     type="button"
-                    onClick={() => copyText(`"Bonjour [Nom du Propriétaire], je vous appelle au sujet de votre appartement à [Quartier]. Nous gérons plusieurs biens de standing dans la résidence. En analysant votre annonce, notre algorithme a identifié un manque à gagner de plus de [Montant] MAD par mois dû à une sous-tarification en week-end et un titre non optimisé sur mobile. Je vous ai préparé un audit chiffré de 2 pages en PDF. Sur quel email ou numéro WhatsApp puis-je vous l'envoyer ?"`, 'script_phone')}
-                    className="text-xs font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1 cursor-pointer"
+                    onClick={() => copyText(`"Bonjour [Nom Propriétaire], je suis [Votre Prénom] de la conciergerie [Nom Conciergerie] à Marrakech.\n\nJe vous contacte au sujet de votre bien à [Quartier]. Nous venons d'auditer les annonces du secteur et votre logement a un potentiel exceptionnel mais subit actuellement une sous-tarification par rapport au Top 10% du quartier.\n\nSelon nos données, vous perdez environ [Fuite MAD] MAD par mois. Nous avons préparé une optimisation complète avec photos HDR, tarification dynamique et gestion 100% déléguée.\n\nSeriez-vous ouvert à ce que je vous envoie l'audit PDF sans engagement sur WhatsApp ?"`, 'script1')}
+                    className="text-xs flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer"
                   >
-                    {copiedId === 'script_phone' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedId === 'script_phone' ? 'Copié !' : 'Copier'}
+                    {copiedId === 'script1' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedId === 'script1' ? 'Copié !' : 'Copier Script'}
                   </button>
                 </div>
-                <div className="bg-slate-900/80 p-3 rounded-lg text-xs text-slate-300 italic border border-slate-800">
-                  « Bonjour [Nom du Propriétaire], je vous appelle au sujet de votre appartement à [Quartier]. Nous gérons plusieurs biens de standing dans le secteur. En analysant votre annonce, notre algorithme a identifié un manque à gagner de plus de [Montant] MAD par mois dû à une sous-tarification et un titre non optimisé sur mobile. Je vous ai préparé un audit chiffré complet en PDF. Sur quel numéro WhatsApp puis-je vous l'envoyer ? »
+
+                <div className="bg-slate-900 p-4 rounded-xl text-xs text-slate-200 font-sans italic border border-slate-800/80 leading-relaxed">
+                  "Bonjour [Nom Propriétaire], je suis [Votre Prénom] de la conciergerie [Nom Conciergerie] à Marrakech.<br /><br />
+                  Je vous contacte au sujet de votre bien à [Quartier]. Nous venons d'auditer les annonces du secteur et votre logement a un potentiel exceptionnel mais subit actuellement une sous-tarification par rapport au Top 10% du quartier.<br /><br />
+                  Selon nos données, vous perdez environ [Fuite MAD] MAD par mois. Nous avons préparé une optimisation complète avec photos HDR, tarification dynamique et gestion 100% déléguée.<br /><br />
+                  Seriez-vous ouvert à ce que je vous envoie l'audit PDF sans engagement sur WhatsApp ?"
                 </div>
               </div>
 
-              {/* Script 2: Objection Handling */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-                  Traitement de l'Objection : « Vos 20% de commission sont trop chers »
-                </span>
-                <div className="bg-slate-900/80 p-3 rounded-lg text-xs text-slate-300 space-y-2 border border-slate-800">
-                  <p>
-                    « Je comprends tout à fait. Mais regardons les chiffres : actuellement, votre bien vous rapporte par exemple 12 000 MAD/mois avec 100% du stress de gestion (ménage, accueil, casse, fiches de police).
-                  </p>
-                  <p>
-                    Avec notre optimisation Yield et nos photos pro, nous visons 18 500 MAD/mois. Même après nos 20% de commission (3 700 MAD), vous recevez <strong>14 800 MAD nets dans votre poche</strong> — soit <strong>+2 800 MAD de bénéfice net supplémentaire chaque mois</strong>, sans lever le petit doigt. »
-                  </p>
+              {/* Script 2: Objection "20% c'est trop cher" */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    Script 2 : Réponse à l'objection "20% de commission, c'est trop cher"
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyText(`"Je comprends tout à fait votre point, [Nom Propriétaire].\n\nCependant, regardons les chiffres nets : actuellement, vous touchez [Revenu Actuel] MAD/an en gérant tout vous-même (ménage, accueil, déclarations police, linge).\n\nAvec notre gestion professionnelle, le bien génère [Revenu Cible] MAD/an. Même après nos 20% de commission, votre revenu net dans votre poche passe à [Revenu Net Propriétaire] MAD/an.\n\nVous gagnez donc plus d'argent chaque mois tout en ayant zéro contrainte opérationnelle."`, 'script2')}
+                    className="text-xs flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer"
+                  >
+                    {copiedId === 'script2' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedId === 'script2' ? 'Copié !' : 'Copier Argumentaire'}
+                  </button>
+                </div>
+
+                <div className="bg-slate-900 p-4 rounded-xl text-xs text-slate-200 font-sans italic border border-slate-800/80 leading-relaxed">
+                  "Je comprends tout à fait votre point, [Nom Propriétaire].<br /><br />
+                  Cependant, regardons les chiffres nets : actuellement, vous touchez [Revenu Actuel] MAD/an en gérant tout vous-même (ménage, accueil, déclarations police, linge).<br /><br />
+                  Avec notre gestion professionnelle, le bien génère [Revenu Cible] MAD/an. Même après nos 20% de commission, votre revenu net dans votre poche passe à [Revenu Net Propriétaire] MAD/an.<br /><br />
+                  Vous gagnez donc plus d'argent chaque mois tout en ayant zéro contrainte opérationnelle."
                 </div>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="bg-slate-950 p-4 border-t border-slate-800 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-400">
-            Concierge Audit OS • Conçu pour les Professionnels de la Gestion Immobilière à Marrakech
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all cursor-pointer"
-          >
-            Fermer le Guide
-          </button>
         </div>
       </div>
     </div>
