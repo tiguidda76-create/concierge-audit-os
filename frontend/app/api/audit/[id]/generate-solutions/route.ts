@@ -7,11 +7,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     try {
       body = await req.json();
     } catch (e) {
-      // Body is optional
+      // If no body provided, use default
     }
 
     let audit = body?.audit;
     if (!audit) {
+      // Fallback audit object
       audit = calculateMarrakechAudit({
         name: 'Résidence Marrakech Guéliz',
         district: 'Guéliz',
@@ -40,7 +41,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       audit.audit_id = params.id;
     }
 
-    const solutions = generateMarrakechSolutions(audit);
+    const toneStyle = body?.tone_style || 'LUXURY';
+    const solutions = generateMarrakechSolutions(audit, toneStyle);
     return NextResponse.json(solutions);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error generating solutions' }, { status: 500 });
