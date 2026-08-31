@@ -1,3 +1,5 @@
+// Marrakech Hyper-Local STR Benchmark & Valuation Engine (Ground-Truth Data & 5-Agent Suite)
+
 export type ValuationStrategyLevel = 'MODERATE' | 'REALISTIC' | 'AGGRESSIVE';
 
 export interface MarrakechRealisticBenchmark {
@@ -34,78 +36,115 @@ export const MARRAKECH_DISTRICT_BENCHMARKS: Record<string, { top10_adr_mad: numb
   'Autre Quartier (Marrakech)': { top10_adr_mad: 900, market_avg_adr_mad: 600, top10_occupancy_pct: 75, market_avg_occupancy_pct: 50 },
 };
 
-/**
- * Computes realistic, ground-truth Marrakech STR benchmarks indexed by exact bedroom count,
- * district, and ambition level (Moderate, Realistic Top 15%, or Aggressive Leader).
- */
+// --------------------------------------------------------------------------
+// 📅 MARRAKECH EVENT RADAR & YIELD SURGE CALENDAR (Agent 4)
+// --------------------------------------------------------------------------
+
+export interface MarrakechEventSurge {
+  id: string;
+  name: string;
+  period: string;
+  demand_surge_multiplier: number;
+  min_nights_recommended: number;
+  description: string;
+  districts_impacted: string[];
+}
+
+export const MARRAKECH_EVENTS_RADAR: MarrakechEventSurge[] = [
+  {
+    id: 'new_year_holidays',
+    name: 'Fêtes de Fin d\'Année (Nouvel An & Réveillon)',
+    period: '22 Décembre — 05 Janvier',
+    demand_surge_multiplier: 1.85,
+    min_nights_recommended: 4,
+    description: 'Pic de demande le plus fort de l\'année. Clientèle internationale VIP, taux de remplissage 96%.',
+    districts_impacted: ['Hivernage', 'Palmeraie', 'Guéliz', 'Médina (Riad)', 'Amelkis / Golfs']
+  },
+  {
+    id: 'fifm_cinema',
+    name: 'Festival International du Film de Marrakech (FIFM)',
+    period: 'Fin Novembre — Début Décembre',
+    demand_surge_multiplier: 1.65,
+    min_nights_recommended: 3,
+    description: 'Présence de célébrités, équipes de production et presse internationale. Forte demande Hivernage & Guéliz.',
+    districts_impacted: ['Hivernage', 'Guéliz', 'Majorelle / Victor Hugo']
+  },
+  {
+    id: 'spring_easter_peak',
+    name: 'Printemps & Vacances de Pâques Européennes',
+    period: '15 Mars — 15 Mai',
+    demand_surge_multiplier: 1.45,
+    min_nights_recommended: 3,
+    description: 'Météo idéale, afflux massif de familles et couples européens. Réservations 60 jours à l\'avance.',
+    districts_impacted: ['Médina (Riad)', 'Palmeraie', 'Guéliz', 'Agdal / Avenue Mohammed VI']
+  },
+  {
+    id: 'marathon_marrakech',
+    name: 'Marathon International de Marrakech',
+    period: 'Dernier week-end de Janvier',
+    demand_surge_multiplier: 1.40,
+    min_nights_recommended: 2,
+    description: 'Plus de 14 000 coureurs et accompagnateurs. Proximité centre et avenues recherchée.',
+    districts_impacted: ['Guéliz', 'Hivernage', 'Agdal / Avenue Mohammed VI']
+  },
+  {
+    id: 'autumn_golf_business',
+    name: 'Saison Automnale Golf & Événements M-Avenue',
+    period: 'Octobre — Novembre',
+    demand_surge_multiplier: 1.35,
+    min_nights_recommended: 2,
+    description: 'Reprise des congrès, golfeurs et nomades digitaux premium.',
+    districts_impacted: ['Amelkis / Golfs', 'Hivernage', 'Palmeraie']
+  }
+];
+
 export function getRealisticMarrakechBenchmark(
   district: string = 'Guéliz',
   bedrooms: number = 2,
-  strategy: ValuationStrategyLevel = 'REALISTIC'
+  strategy: ValuationStrategyLevel = 'REALISTIC',
+  currentAdr?: number
 ): MarrakechRealisticBenchmark {
   const beds = Math.max(1, Math.min(10, bedrooms));
   const isRiad = district.includes('Médina') || district.includes('Riad');
   const isVilla = district.includes('Palmeraie') || district.includes('Amelkis');
   const isHivernage = district.includes('Hivernage');
-  const isMajorelle = district.includes('Majorelle');
-  const isAgdal = district.includes('Agdal');
 
-  let baseAvgPerBed = 350;
-  let top10Multiplier = 1.35;
-
-  if (isRiad) {
-    baseAvgPerBed = 450;
-    top10Multiplier = 1.38;
-  } else if (isVilla) {
-    baseAvgPerBed = 750;
-    top10Multiplier = 1.42;
-  } else if (isHivernage) {
-    baseAvgPerBed = 480;
-    top10Multiplier = 1.38;
-  } else if (isMajorelle) {
-    baseAvgPerBed = 420;
-    top10Multiplier = 1.35;
-  } else if (isAgdal) {
-    baseAvgPerBed = 380;
-    top10Multiplier = 1.32;
-  } else {
-    baseAvgPerBed = 380;
-    top10Multiplier = 1.36;
-  }
-
-  if (strategy === 'MODERATE') {
-    top10Multiplier = 1.20;
-  } else if (strategy === 'AGGRESSIVE') {
-    top10Multiplier = 1.55;
-  }
-
-  let marketAvgAdr = 0;
+  let baselineMarketAvg = 0;
   if (beds === 1) {
-    marketAvgAdr = isHivernage ? 550 : (isRiad ? 600 : 420);
+    baselineMarketAvg = isHivernage ? 500 : (isRiad ? 550 : 380);
   } else if (beds === 2) {
-    marketAvgAdr = isHivernage ? 950 : (isRiad ? 1100 : 720);
+    baselineMarketAvg = isHivernage ? 850 : (isRiad ? 950 : 650);
   } else if (beds === 3) {
-    marketAvgAdr = isHivernage ? 1400 : (isRiad ? 1600 : 1100);
+    baselineMarketAvg = isHivernage ? 1250 : (isRiad ? 1400 : 950);
   } else {
-    marketAvgAdr = Math.round(beds * baseAvgPerBed);
+    baselineMarketAvg = Math.round(beds * (isVilla ? 650 : 350));
   }
 
-  const top10Adr = Math.round(marketAvgAdr * top10Multiplier);
+  const growthMultiplier = strategy === 'MODERATE' ? 1.18 : (strategy === 'AGGRESSIVE' ? 1.48 : 1.30);
+  const growthPct = strategy === 'MODERATE' ? 18 : (strategy === 'AGGRESSIVE' ? 48 : 30);
+
+  let targetAdr = 0;
+  if (currentAdr && currentAdr > 100) {
+    targetAdr = Math.round(currentAdr * growthMultiplier);
+  } else {
+    targetAdr = Math.round(baselineMarketAvg * growthMultiplier);
+  }
+
   const avgOcc = isRiad ? 58 : (isHivernage ? 56 : 52);
-  const top10Occ = strategy === 'MODERATE' ? 74 : (strategy === 'AGGRESSIVE' ? 84 : 79);
+  const top10Occ = strategy === 'MODERATE' ? 72 : (strategy === 'AGGRESSIVE' ? 82 : 78);
 
   return {
     district,
     bedrooms: beds,
-    market_avg_adr_mad: marketAvgAdr,
-    top10_adr_mad: top10Adr,
+    market_avg_adr_mad: currentAdr ? Math.min(currentAdr, baselineMarketAvg) : baselineMarketAvg,
+    top10_adr_mad: targetAdr,
     market_avg_occupancy_pct: avgOcc,
     top10_occupancy_pct: top10Occ,
     strategy_description: strategy === 'MODERATE'
-      ? 'Objectif Prudent (+20% croissance)'
+      ? `Objectif Prudent (+${growthPct}% réaliste)`
       : strategy === 'AGGRESSIVE'
-      ? 'Objectif Leader Marché Top 5% (+55%)'
-      : 'Objectif Réaliste Top 15% (+35% croissance)',
+      ? `Objectif Leader (+${growthPct}% haute performance)`
+      : `Objectif Réaliste (+${growthPct}% croissance conciergerie)`,
     key_drivers: [
       'Tarification dynamique week-end & événements',
       'Titre mobile à fort taux de clic',
@@ -256,7 +295,7 @@ export function calculateRealAdrBreakdown(params: AdrCalculatorParams): AdrValua
   const lowAdr = Math.round(netDailyRate * lowSeasonFactor * (1 + multiplierPct / 100));
 
   const weightedAnnualAdr = Math.round((peakAdr * 0.45) + (shoulderAdr * 0.35) + (lowAdr * 0.20));
-  const benchmark = getRealisticMarrakechBenchmark(params.district, params.bedrooms, 'REALISTIC');
+  const benchmark = getRealisticMarrakechBenchmark(params.district, params.bedrooms, 'REALISTIC', params.rawDisplayedPrice);
   const optimizedYieldTarget = Math.max(weightedAnnualAdr, benchmark.top10_adr_mad);
 
   return {
@@ -281,7 +320,7 @@ export function calculateRealAdrBreakdown(params: AdrCalculatorParams): AdrValua
 export function calculateMarrakechAudit(prop: PropertyData) {
   const auditId = prop.id || `aud_${Math.random().toString(36).substring(2, 9)}`;
   const strategy = prop.strategy_level || 'REALISTIC';
-  const benchmark = getRealisticMarrakechBenchmark(prop.district, prop.bedrooms, strategy);
+  const benchmark = getRealisticMarrakechBenchmark(prop.district, prop.bedrooms, strategy, prop.current_adr);
   
   const targetAdr = prop.target_adr && prop.target_adr > 0 ? prop.target_adr : benchmark.top10_adr_mad;
   const targetOcc = prop.target_occupancy_pct && prop.target_occupancy_pct > 0 ? prop.target_occupancy_pct : benchmark.top10_occupancy_pct;
@@ -551,5 +590,30 @@ export function generateMarrakechSolutions(audit: any) {
     photo_strategy: photoStrategy,
     pricing_strategy_summary: `Tarif actuel extrait : ${prop.current_adr} MAD/nuit | Cible Yield Haute Saison : ${Math.round(audit.financials.target_annual_revenue / 365 / (audit.property_input.target_occupancy_pct / 100 || 0.78))} MAD/nuit avec séjour minimum de 2 nuits le week-end.`,
     status: 'DRAFT'
+  };
+}
+
+// --------------------------------------------------------------------------
+// 💼 AGENT 5: AI OWNER PITCH & WHATSAPP MANDATE CLOSER GENERATOR
+// --------------------------------------------------------------------------
+
+export function generateOwnerWhatsAppPitch(audit: any, conciergeName: string = 'Votre Conciergerie', commissionPct: number = 20) {
+  const prop = audit.property_input;
+  const fin = audit.financials;
+  const leakageMonthly = fin.monthly_revenue_leakage.toLocaleString('fr-FR');
+  const targetAdr = prop.target_adr || (prop.current_adr * 1.30).toFixed(0);
+
+  const whatsappFr = `Salam ${prop.owner_name || 'Monsieur/Madame'},\n\nJ'ai analysé la performance de votre bien *"${prop.name}"* à ${prop.district}.\n\n📊 *Diagnostic Clé :*\n• Votre tarif actuel : *${prop.current_adr} MAD/nuit*\n• Potentiel Top 10% (${prop.district}) : *${targetAdr} MAD/nuit*\n• Manque à gagner estimé : *~${leakageMonthly} MAD / mois*\n\nAvec notre conciergerie (*${conciergeName}*), nous prenons 100% de la gestion en charge (photos pro HDR, tarification dynamique, accueil VIP et ménage hôtelier) pour une commission de ${commissionPct}% sur les résultats nets.\n\nJe vous ai préparé le rapport d'audit complet en PDF. Êtes-vous disponible pour un court échange téléphonique de 5 min cette semaine ?\n\nBien cordialement,\n*${conciergeName} Marrakech*`;
+
+  const whatsappDarija = `Salam Si/Lalla ${prop.owner_name || ''},\n\nDrna wahed l'audit complet l l'appartement dialek *"${prop.name}"* f ${prop.district}.\n\n📊 *Chno l9ina f l'analyse :*\n• Prix li dayr daba : *${prop.current_adr} MAD/lila*\n• Prix réel li ymken yjib f Top 10% : *${targetAdr} MAD/lila*\n• L'ferq dial l'arbah li kaydi3 : *~${leakageMonthly} MAD f ch-her*\n\nHna f *${conciergeName}*, kantkelffo b kolchi 100% (Taswir pro, Yield pricing dynamique, réception des clients, ménage 5 étoiles w déclaration police).\n\nWach 3ndek 5 d9ayeq f téléphone had simana ncharhek lik l'audit complet ?\n\nChokran bzaf,\n*${conciergeName}*`;
+
+  const emailPitch = `Objet : Audit de Performance & Potentiel d'Optimisation — ${prop.name} (${prop.district})\n\nBonjour ${prop.owner_name || 'Monsieur/Madame'},\n\nDans le cadre de notre veille sur le marché de la location courte durée à Marrakech (${prop.district}), notre équipe a réalisé une étude comparative de votre logement.\n\nActuellement positionné à ${prop.current_adr} MAD/nuit, notre analyse démontre que des ajustements sur le copywriting OTA, la tarification dynamique week-end/saison et la mise en valeur des photos permettraient d'atteindre ${targetAdr} MAD/nuit, soit un gain potentiel estimé à +${leakageMonthly} MAD par mois.\n\nNotre conciergerie prend en charge l'intégralité des opérations :\n1. Merchandising visuel & multidiffusion (Airbnb, Booking.com, séjours directs)\n2. Yield management en temps réel (fêtes, événements, saisons)\n3. Check-in 24/7, conciergerie privée et formalités de police\n4. Entretien hôtelier et intendance complète\n\nVous trouverez en pièce jointe le rapport d'audit complet.\n\nJe reste à votre entière disposition pour échanger lors d'un rendez-vous à votre convenance.\n\nSincères salutations,\n${conciergeName} Marrakech`;
+
+  return {
+    whatsapp_fr: whatsappFr,
+    whatsapp_darija: whatsappDarija,
+    email_pitch: emailPitch,
+    encoded_whatsapp_url_fr: `https://wa.me/?text=${encodeURIComponent(whatsappFr)}`,
+    encoded_whatsapp_url_darija: `https://wa.me/?text=${encodeURIComponent(whatsappDarija)}`,
   };
 }
