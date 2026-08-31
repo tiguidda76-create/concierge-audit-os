@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Sparkles, Link as LinkIcon, Search, Building2, Sliders, DollarSign, Star, ShieldCheck, CheckCircle2, ArrowRight, Layers, Flame, Check, Globe, RefreshCw, AlertCircle } from 'lucide-react';
+import { Sparkles, Link as LinkIcon, Search, Building2, Sliders, DollarSign, Star, ShieldCheck, CheckCircle2, ArrowRight, Layers, Flame, Check, Globe, RefreshCw, AlertCircle, Edit3, ChevronRight } from 'lucide-react';
 import { PropertyData, MARRAKECH_DISTRICT_BENCHMARKS, calculateMarrakechAudit } from '@/lib/marrakech_engine';
 
 export const REAL_SAMPLE_URLS = [
@@ -40,28 +40,28 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
   const [propertyUrl, setPropertyUrl] = useState('');
   const [isUrlParsing, setIsUrlParsing] = useState(false);
   const [urlMessage, setUrlMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  const [lastScrapedProperty, setLastScrapedProperty] = useState<PropertyData | null>(null);
-  const [showManualAdjust, setShowManualAdjust] = useState(false);
+  const [extractedStaged, setExtractedStaged] = useState<PropertyData | null>(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   const [form, setForm] = useState<PropertyData>({
-    name: 'Logement à Marrakech',
+    name: 'Appartement Guéliz avec Terrasse',
     url: '',
     district: 'Guéliz',
     city: 'Marrakech',
     bedrooms: 2,
     bathrooms: 1.5,
     currency: 'MAD',
-    current_adr: 800,
-    current_occupancy_pct: 50,
+    current_adr: 850,
+    current_occupancy_pct: 52,
     target_adr: 1350,
     target_occupancy_pct: 79,
-    review_rating: 4.65,
-    review_count: 20,
-    photo_count: 16,
+    review_rating: 4.70,
+    review_count: 22,
+    photo_count: 18,
     has_professional_photos: false,
     instant_book_enabled: true,
-    current_title: 'Appartement à Marrakech',
-    current_description: 'Logement de vacances à Marrakech.',
+    current_title: 'Appartement Guéliz Marrakech',
+    current_description: 'Logement moderne situé au centre de Guéliz à Marrakech avec terrasse et climatisation.',
     owner_name: 'Propriétaire Marrakech',
     has_fiber_optic: true,
     ac_all_rooms: true,
@@ -94,7 +94,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
   const handleAnalyzeUrl = async (urlToAnalyze?: string) => {
     const cleanUrl = (urlToAnalyze || propertyUrl).trim();
     if (!cleanUrl) {
-      setUrlMessage({ text: 'Veuillez coller un lien valide (Airbnb, Booking.com, Avito, Mubawab)', type: 'error' });
+      setUrlMessage({ text: 'Veuillez coller une URL d\'annonce valide.', type: 'error' });
       return;
     }
 
@@ -108,39 +108,49 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
         body: JSON.stringify({ url: cleanUrl })
       });
 
-      if (!res.ok) throw new Error('Erreur lors du scraping');
+      if (!res.ok) throw new Error('Échec parsing');
 
       const data = await res.json();
       const realProperty: PropertyData = data.property;
 
       setForm(realProperty);
-      setLastScrapedProperty(realProperty);
+      setExtractedStaged(realProperty);
       setUrlMessage({
-        text: `✓ Données réelles extraites (${data.platform.toUpperCase()}) : "${realProperty.name.slice(0, 38)}..." | ${realProperty.current_adr} MAD/nuit`,
+        text: `✓ Annonce analysée : "${realProperty.name.slice(0, 42)}..." — Vérifiez ou ajustez le prix réel ci-dessous`,
         type: 'success'
       });
-
-      const auditRes = await fetch('/api/audit/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(realProperty),
-      });
-
-      if (auditRes.ok) {
-        const auditData = await auditRes.json();
-        onAuditGenerated(auditData);
-      } else {
-        const fallbackAudit = calculateMarrakechAudit(realProperty);
-        onAuditGenerated(fallbackAudit);
-      }
     } catch (err: any) {
-      setUrlMessage({ text: 'Extraction des métadonnées du lien en cours...', type: 'success' });
-      const fallbackProp = { ...form, url: cleanUrl };
+      const fallbackProp: PropertyData = {
+        ...form,
+        url: cleanUrl,
+        name: `Logement ${form.district} (URL Analysée)`,
+      };
       setForm(fallbackProp);
-      const fallbackAudit = calculateMarrakechAudit(fallbackProp);
-      onAuditGenerated(fallbackAudit);
+      setExtractedStaged(fallbackProp);
+      setUrlMessage({ text: 'Lien identifié. Veuillez calibrer le prix par nuit réel ci-dessous :', type: 'success' });
     } finally {
       setIsUrlParsing(false);
+    }
+  };
+
+  const handleExecuteAuditWithAccurateData = async () => {
+    try {
+      const res = await fetch('/api/audit/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+
+      if (res.ok) {
+        const auditData = await res.json();
+        onAuditGenerated(auditData);
+      } else {
+        const fallbackAudit = calculateMarrakechAudit(form);
+        onAuditGenerated(fallbackAudit);
+      }
+    } catch (err) {
+      const fallbackAudit = calculateMarrakechAudit(form);
+      onAuditGenerated(fallbackAudit);
     }
   };
 
@@ -157,14 +167,14 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
             <div className="flex items-center gap-2">
               <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-emerald-500/30 flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                Audit par Lien Réel • Marché Marrakech (MAD)
+                Audit par Lien Réel & Calibration Précise • Marrakech (MAD)
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black mt-2 tracking-tight">
-              Collez le Lien de Votre Logement
+              Collez le Lien de Votre Annonce
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5 max-w-2xl">
-              Entrez l'URL de votre annonce <strong>Airbnb, Booking.com, Avito.ma ou Mubawab</strong> pour extraire automatiquement les données réelles et calculer la fuite de revenu.
+              Collez l'URL (Airbnb, Booking.com, Avito.ma ou Mubawab) pour extraire l'annonce et calibrer vos chiffres réels au dirham près.
             </p>
           </div>
 
@@ -206,12 +216,12 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
               {isUrlParsing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Scraping en cours...
+                  Analyse de l'annonce...
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Extraire & Lancer l'Audit
+                  Analyser l'Annonce
                 </>
               )}
             </button>
@@ -245,40 +255,176 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
         </div>
       </div>
 
-      {lastScrapedProperty && (
-        <div className="p-6 bg-slate-50 border-b border-slate-200/80 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              Données Réelles Extraites du Logement :
+      {/* SMART INTAKE & CALIBRATION BAR (Ensures 100% accurate data) */}
+      <div className="p-6 bg-slate-900 border-b border-slate-800 text-white space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-brand-500/20 text-brand-400 rounded-lg">
+              <Edit3 className="w-4 h-4" />
             </span>
-            <button
-              type="button"
-              onClick={() => setShowManualAdjust(!showManualAdjust)}
-              className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              {showManualAdjust ? 'Masquer les paramètres' : 'Ajuster les valeurs extraites'}
-            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              Calibration Précise des Données Réelles de l'Annonce :
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400">
+            Ajustez ces valeurs au dirham près si nécessaire avant de générer l'audit
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="lg:col-span-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Nom / Titre du Logement
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value, current_title: e.target.value })}
+              className="w-full bg-slate-900 text-xs font-bold text-white px-2.5 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:border-brand-500"
+            />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Prix par nuit (ADR)</span>
-              <span className="text-sm font-extrabold text-slate-900">{form.current_adr} MAD</span>
+          <div className="bg-slate-950 p-3 rounded-xl border-2 border-emerald-500/40 shadow-inner">
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-bold uppercase text-emerald-400">
+                Prix Réel / Nuit (MAD)
+              </label>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Quartier Détecté</span>
-              <span className="text-sm font-extrabold text-brand-700">{form.district}</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="100"
+                max="50000"
+                step="25"
+                value={form.current_adr}
+                onChange={(e) => setForm({ ...form, current_adr: parseFloat(e.target.value) || 0 })}
+                className="w-full bg-slate-900 text-sm font-black text-emerald-400 px-2.5 py-1.5 rounded-lg border border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+              <span className="text-xs font-bold text-slate-400">MAD</span>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Note & Avis Réels</span>
-              <span className="text-sm font-extrabold text-slate-900">{form.review_rating} ★ ({form.review_count} avis)</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Quartier Marrakech
+            </label>
+            <select
+              value={form.district}
+              onChange={(e) => {
+                const d = e.target.value;
+                const b = MARRAKECH_DISTRICT_BENCHMARKS[d];
+                setForm({
+                  ...form,
+                  district: d,
+                  target_adr: b ? b.top10_adr_mad : form.target_adr,
+                  target_occupancy_pct: b ? b.top10_occupancy_pct : form.target_occupancy_pct,
+                });
+              }}
+              className="w-full bg-slate-900 text-xs font-bold text-white px-2 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:border-brand-500"
+            >
+              {Object.keys(MARRAKECH_DISTRICT_BENCHMARKS).map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Note ★ & Avis
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <input
+                type="number"
+                step="0.01"
+                min="1"
+                max="5"
+                value={form.review_rating}
+                onChange={(e) => setForm({ ...form, review_rating: parseFloat(e.target.value) || 4.5 })}
+                className="w-full bg-slate-900 text-xs font-bold text-amber-300 px-2 py-1.5 rounded-lg border border-slate-700"
+              />
+              <input
+                type="number"
+                min="0"
+                value={form.review_count}
+                onChange={(e) => setForm({ ...form, review_count: parseInt(e.target.value) || 0 })}
+                placeholder="Avis"
+                className="w-full bg-slate-900 text-xs font-bold text-white px-2 py-1.5 rounded-lg border border-slate-700"
+              />
             </div>
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Photos Détectées</span>
-              <span className="text-sm font-extrabold text-slate-900">{form.photo_count} photos</span>
-            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+            className="text-xs font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            {showAdvancedSettings ? 'Masquer équipements' : 'Ajuster équipements (Fibre, Clim, Terrasse, Piscine, Gardien)'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExecuteAuditWithAccurateData}
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+          >
+            <Sparkles className="w-4 h-4" />
+            Générer l'Audit avec ces Chiffres Exacts ({form.current_adr} MAD/nuit)
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {showAdvancedSettings && (
+        <div className="p-6 bg-slate-50 border-b border-slate-200/80 space-y-4 animate-in fade-in duration-200">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+            Équipements & Critères de Valorisation Marrakech :
+          </span>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-700">
+            <label className="flex items-center space-x-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200">
+              <input
+                type="checkbox"
+                checked={form.has_fiber_optic}
+                onChange={(e) => setForm({ ...form, has_fiber_optic: e.target.checked })}
+                className="w-3.5 h-3.5 text-brand-600 rounded"
+              />
+              <span>Fibre Optique 200M</span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200">
+              <input
+                type="checkbox"
+                checked={form.ac_all_rooms}
+                onChange={(e) => setForm({ ...form, ac_all_rooms: e.target.checked })}
+                className="w-3.5 h-3.5 text-brand-600 rounded"
+              />
+              <span>Climatisation réversible</span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200">
+              <input
+                type="checkbox"
+                checked={form.has_private_terrace}
+                onChange={(e) => setForm({ ...form, has_private_terrace: e.target.checked })}
+                className="w-3.5 h-3.5 text-brand-600 rounded"
+              />
+              <span>Terrasse / Solarium</span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200">
+              <input
+                type="checkbox"
+                checked={form.has_guard_24_7}
+                onChange={(e) => setForm({ ...form, has_guard_24_7: e.target.checked })}
+                className="w-3.5 h-3.5 text-brand-600 rounded"
+              />
+              <span>Gardien 24/7</span>
+            </label>
           </div>
         </div>
       )}
@@ -290,7 +436,7 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </div>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Fuite de Revenu Annuelle ({form.district})
+              Fuite de Revenu Annuelle Calculée sur votre Base ({form.current_adr} MAD/nuit @ {form.district})
             </span>
             <div className="text-2xl sm:text-3xl font-black text-red-600 tracking-tight">
               {previewMetrics.annualLeakage.toLocaleString('fr-FR')} MAD
@@ -311,209 +457,6 @@ export default function AuditGenerator({ onAuditGenerated, isLoading }: AuditGen
           </span>
         </div>
       </div>
-
-      {showManualAdjust && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const auditData = calculateMarrakechAudit(form);
-            onAuditGenerated(auditData);
-          }}
-          className="p-6 space-y-6 bg-white animate-in fade-in duration-200"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4 md:col-span-1 border-r border-slate-100 pr-0 md:pr-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-brand-600" />
-                Quartier & Logement
-              </h3>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Quartier</label>
-                <select
-                  value={form.district}
-                  onChange={(e) => {
-                    const d = e.target.value;
-                    const b = MARRAKECH_DISTRICT_BENCHMARKS[d];
-                    setForm({
-                      ...form,
-                      district: d,
-                      target_adr: b ? b.top10_adr_mad : form.target_adr,
-                      target_occupancy_pct: b ? b.top10_occupancy_pct : form.target_occupancy_pct,
-                    });
-                  }}
-                  className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-800"
-                >
-                  {Object.keys(MARRAKECH_DISTRICT_BENCHMARKS).map((dist) => (
-                    <option key={dist} value={dist}>
-                      {dist}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Titre de l'annonce</label>
-                <input
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Chambres</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.bedrooms}
-                    onChange={(e) => setForm({ ...form, bedrooms: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Salles de bain</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={form.bathrooms}
-                    onChange={(e) => setForm({ ...form, bathrooms: parseFloat(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 md:col-span-1 border-r border-slate-100 pr-0 md:pr-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-                Prix par Nuit & Avis
-              </h3>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-slate-600">Prix moyen actuel (ADR)</label>
-                  <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                    {form.current_adr} MAD / nuit
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="200"
-                  max="12000"
-                  step="50"
-                  value={form.current_adr}
-                  onChange={(e) => setForm({ ...form, current_adr: parseFloat(e.target.value) })}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-slate-600">Taux d'occupation (%)</label>
-                  <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                    {form.current_occupancy_pct}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="95"
-                  value={form.current_occupancy_pct}
-                  onChange={(e) => setForm({ ...form, current_occupancy_pct: parseFloat(e.target.value) })}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Note (★)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    max="5"
-                    value={form.review_rating}
-                    onChange={(e) => setForm({ ...form, review_rating: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre d'avis</label>
-                  <input
-                    type="number"
-                    value={form.review_count}
-                    onChange={(e) => setForm({ ...form, review_count: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 md:col-span-1">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-amber-500" />
-                Équipements & Prestations
-              </h3>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs text-slate-700">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.has_fiber_optic}
-                    onChange={(e) => setForm({ ...form, has_fiber_optic: e.target.checked })}
-                    className="w-3.5 h-3.5 text-brand-600 rounded"
-                  />
-                  <span>Fibre Optique (200+ Mbps)</span>
-                </label>
-
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.ac_all_rooms}
-                    onChange={(e) => setForm({ ...form, ac_all_rooms: e.target.checked })}
-                    className="w-3.5 h-3.5 text-brand-600 rounded"
-                  />
-                  <span>Climatisation intégrale</span>
-                </label>
-
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.has_private_terrace}
-                    onChange={(e) => setForm({ ...form, has_private_terrace: e.target.checked })}
-                    className="w-3.5 h-3.5 text-brand-600 rounded"
-                  />
-                  <span>Terrasse / Rooftop privatif</span>
-                </label>
-
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.has_guard_24_7}
-                    onChange={(e) => setForm({ ...form, has_guard_24_7: e.target.checked })}
-                    className="w-3.5 h-3.5 text-brand-600 rounded"
-                  />
-                  <span>Résidence avec gardien 24/7</span>
-                </label>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="submit"
-                  className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-brand-500/25 transition-all cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Mettre à Jour l'Audit
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-      )}
     </div>
   );
 }

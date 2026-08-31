@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PropertyData, MARRAKECH_DISTRICT_BENCHMARKS } from '@/lib/marrakech_engine';
+import { PropertyData, MARRAKECH_DISTRICT_BENCHMARKS, calculateRealAdrBreakdown } from '@/lib/marrakech_engine';
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -36,7 +36,6 @@ export async function POST(req: Request) {
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
         },
         next: { revalidate: 0 },
         signal: AbortSignal.timeout(8000),
@@ -50,7 +49,6 @@ export async function POST(req: Request) {
       console.warn(`[Live Scraper] Direct fetch failed for ${url}:`, fetchErr);
     }
 
-    // Extraction Pipeline:
     let extractedTitle = '';
     let extractedDescription = '';
     let extractedPriceMad: number | null = null;
@@ -62,7 +60,27 @@ export async function POST(req: Request) {
     let detectedDistrict = 'Guéliz';
 
     if (fetchSuccess && html) {
-      // 1. JSON-LD Schema.org parser
+      const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
+      if (ogDescMatch) {
+        extractedDescription = ogDescMatch[1].trim();
+        
+        const priceInDesc = extractedDescription.match(/(?:for|\/|pour)\s*(?:\$|€|USD|EUR|MAD|DH|Dhs)?\s*([0-9\s,.]+)\s*(?:\$|€|USD|EUR|MAD|DH|Dhs|\/night|\/nuit|par nuit)?/i);
+        if (priceInDesc) {
+          const rawNum = parseFloat(priceInDesc[1].replace(/[\s,]/g, ''));
+          if (!isNaN(rawNum) && rawNum > 15) {
+            if (extractedDescription.includes('€') || extractedDescription.includes('EUR')) {
+              extractedPriceMad = Math.round(rawNum * 10.8);
+            } else if (extractedDescription.includes('$') || extractedDescription.includes('USD')) {
+              extractedPriceMad = Math.round(rawNum * 9.9);
+            } else if (rawNum < 300) {
+              extractedPriceMad = Math.round(rawNum * 10.8);
+            } else {
+              extractedPriceMad = Math.round(rawNum);
+            }
+          }
+        }
+      }
+
       const jsonLdMatches = html.match(/<script\s+type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi);
       if (jsonLdMatches) {
         for (const match of jsonLdMatches) {
@@ -86,7 +104,7 @@ export async function POST(req: Request) {
                 }
                 if (!isNaN(rCount)) extractedReviews = rCount;
               }
-              if (item.offers) {
+              if (item.offers && !extractedPriceMad) {
                 const offer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
                 const p = parseFloat(offer.price || offer.lowPrice);
                 const curr = (offer.priceCurrency || 'MAD').toUpperCase();
@@ -98,44 +116,21 @@ export async function POST(req: Request) {
               }
             }
           } catch (e) {
-            // Ignore parse errors on individual JSON-LD blocks
+            // Ignore
           }
         }
       }
 
-      // 2. OpenGraph Meta Tags Parser
       if (!extractedTitle) {
         const ogTitle = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i)
           || html.match(/<meta\s+name=["']title["']\s+content=["']([^"']+)["']/i);
-        if (ogTitle) extractedTitle = ogTitle[1].replace(/ - Airbnb.*$/i, '').replace(/ - Booking\.com.*$/i, '').replace(/ \| Avito.*$/i, '').trim();
-      }
-
-      if (!extractedDescription) {
-        const ogDesc = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i)
-          || html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
-        if (ogDesc) extractedDescription = ogDesc[1].trim();
+        if (ogTitle) extractedTitle = ogTitle[1].replace(/ - Airbnb.*$/i, '').replace(/ - Booking\.com.*$/i, '').replace(/ \| Avito.*$/i, '').replace(/ - Mubawab.*$/i, '').trim();
       }
 
       if (!extractedTitle) {
         const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i);
         if (titleTag) {
-          extractedTitle = titleTag[1].replace(/ - Airbnb.*$/i, '').replace(/ - Booking\.com.*$/i, '').replace(/ \| Avito.*$/i, '').trim();
-        }
-      }
-
-      // 3. Platform Regex Fallbacks for Pricing & Reviews in HTML
-      if (!extractedPriceMad) {
-        const madPriceMatch = html.match(/([0-9\s,.]+)\s*(?:MAD|DH|Dhs|dirhams)/i);
-        if (madPriceMatch) {
-          const num = parseFloat(madPriceMatch[1].replace(/[\s,]/g, ''));
-          if (!isNaN(num) && num >= 200 && num <= 50000) extractedPriceMad = Math.round(num);
-        }
-        if (!extractedPriceMad) {
-          const eurPriceMatch = html.match(/(?:€|EUR)\s*([0-9\s,.]+)|([0-9\s,.]+)\s*(?:€|EUR)/i);
-          if (eurPriceMatch) {
-            const num = parseFloat((eurPriceMatch[1] || eurPriceMatch[2]).replace(/[\s,]/g, ''));
-            if (!isNaN(num) && num >= 20 && num <= 5000) extractedPriceMad = Math.round(num * 10.8);
-          }
+          extractedTitle = titleTag[1].replace(/ - Airbnb.*$/i, '').replace(/ - Booking\.com.*$/i, '').replace(/ \| Avito.*$/i, '').replace(/ - Mubawab.*$/i, '').trim();
         }
       }
 
@@ -153,13 +148,6 @@ export async function POST(req: Request) {
         if (revMatch) {
           const count = parseInt(revMatch[1]);
           if (!isNaN(count)) extractedReviews = count;
-        }
-      }
-
-      if (!extractedPhotosCount) {
-        const imgMatches = html.match(/<img[^>]+src=["'][^"']+\.(?:jpg|jpeg|png|webp)[^"']*["']/gi);
-        if (imgMatches) {
-          extractedPhotosCount = Math.min(45, Math.max(12, Math.round(imgMatches.length / 2)));
         }
       }
 
@@ -187,8 +175,6 @@ export async function POST(req: Request) {
       detectedDistrict = 'Agdal / Avenue Mohammed VI';
     } else if (combinedUrlText.includes('amelkis') || combinedUrlText.includes('golf')) {
       detectedDistrict = 'Amelkis / Golfs';
-    } else if (combinedUrlText.includes('gueliz') || combinedUrlText.includes('guéliz')) {
-      detectedDistrict = 'Guéliz';
     } else {
       detectedDistrict = 'Guéliz';
     }
@@ -197,47 +183,18 @@ export async function POST(req: Request) {
       const slugParts = pathname.split('/').filter(Boolean);
       const lastSlug = slugParts[slugParts.length - 1] || 'Annonce Marrakech';
       const cleanSlug = lastSlug.replace(/[-_]/g, ' ').replace(/\.html?$/i, '').replace(/^[0-9]+/, '').trim();
-      extractedTitle = cleanSlug.length > 5 ? cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1) : `Logement ${detectedDistrict} • Marrakech`;
+      extractedTitle = cleanSlug.length > 4 ? cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1) : `Logement ${detectedDistrict} • Marrakech`;
     }
 
     const hash = url.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
     const benchmark = MARRAKECH_DISTRICT_BENCHMARKS[detectedDistrict] || MARRAKECH_DISTRICT_BENCHMARKS['Guéliz'];
 
-    if (!extractedPriceMad) {
-      const variance = (hash % 200) - 100;
-      extractedPriceMad = Math.max(350, Math.round(benchmark.market_avg_adr_mad + variance));
-    }
-
-    if (!extractedRating) {
-      const rDec = (hash % 35) / 100;
-      extractedRating = Number((4.60 + rDec).toFixed(2));
-    }
-
-    if (!extractedReviews) {
-      extractedReviews = Math.max(5, (hash % 65) + 12);
-    }
-
-    if (!extractedPhotosCount) {
-      extractedPhotosCount = Math.max(10, (hash % 22) + 14);
-    }
-
-    if (!extractedBedrooms) {
-      if (detectedDistrict === 'Médina (Riad)' || detectedDistrict === 'Palmeraie') {
-        extractedBedrooms = (hash % 3) + 3;
-      } else {
-        extractedBedrooms = (hash % 2) + 1;
-      }
-    }
-
-    if (!extractedBathrooms) {
-      extractedBathrooms = Math.max(1, Math.round(extractedBedrooms >= 3 ? extractedBedrooms : extractedBedrooms * 0.75));
-    }
-
-    if (!extractedDescription) {
-      extractedDescription = `Logement d'exception situé dans le quartier recherché de ${detectedDistrict} à Marrakech. Offre tout le confort moderne avec climatisation réversible, Wi-Fi haut débit, terrasse et service conciergerie.`;
-    }
-
-    const hasProPhotos = extractedPhotosCount >= 18 && (extractedRating >= 4.75 || url.includes('booking') || url.includes('superhost'));
+    const finalRawPrice = extractedPriceMad || benchmark.market_avg_adr_mad;
+    const finalRating = extractedRating || 4.75;
+    const finalReviews = extractedReviews || 18;
+    const finalBedrooms = extractedBedrooms || (detectedDistrict === 'Médina (Riad)' || detectedDistrict === 'Palmeraie' ? 4 : 2);
+    const finalBathrooms = extractedBathrooms || Math.max(1, Math.round(finalBedrooms >= 3 ? finalBedrooms : finalBedrooms * 0.75));
+    const finalPhotos = extractedPhotosCount || 18;
 
     const parsedProperty: PropertyData = {
       id: `prop_${Math.abs(hash).toString(36)}`,
@@ -246,21 +203,21 @@ export async function POST(req: Request) {
       source_platform: platform,
       district: detectedDistrict,
       city: 'Marrakech',
-      bedrooms: extractedBedrooms,
-      bathrooms: extractedBathrooms,
+      bedrooms: finalBedrooms,
+      bathrooms: finalBathrooms,
       currency: 'MAD',
-      current_adr: extractedPriceMad,
-      current_occupancy_pct: Math.min(85, Math.max(38, Math.round(benchmark.market_avg_occupancy_pct + ((hash % 16) - 8)))),
+      current_adr: finalRawPrice,
+      current_occupancy_pct: benchmark.market_avg_occupancy_pct,
       target_adr: benchmark.top10_adr_mad,
       target_occupancy_pct: benchmark.top10_occupancy_pct,
-      review_rating: extractedRating,
-      review_count: extractedReviews,
-      photo_count: extractedPhotosCount,
-      has_professional_photos: hasProPhotos,
+      review_rating: finalRating,
+      review_count: finalReviews,
+      photo_count: finalPhotos,
+      has_professional_photos: finalPhotos >= 20 && finalRating >= 4.80,
       instant_book_enabled: true,
       current_title: extractedTitle,
-      current_description: extractedDescription,
-      owner_name: 'Bailleur / Propriétaire Marrakech',
+      current_description: extractedDescription || `Logement situé à ${detectedDistrict}, Marrakech. Confort moderne, climatisation réversible, Wi-Fi haut débit et conciergerie.`,
+      owner_name: 'Propriétaire / Conciergerie Marrakech',
       has_fiber_optic: true,
       ac_all_rooms: true,
       has_private_terrace: true,
@@ -272,11 +229,12 @@ export async function POST(req: Request) {
       success: true,
       platform,
       real_scraped: fetchSuccess,
+      price_extracted: extractedPriceMad !== null,
       property: parsedProperty,
-      message: `Données réelles extraites pour : "${extractedTitle.slice(0, 45)}..." (${extractedPriceMad} MAD/nuit, ${extractedRating}★, ${extractedReviews} avis)`
+      message: `Annonce identifiée : "${extractedTitle.slice(0, 40)}..."`
     });
   } catch (error: any) {
     console.error('[Parse URL Error]:', error);
-    return NextResponse.json({ error: error.message || 'Erreur lors de l\'extraction du lien' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Erreur d\'analyse du lien' }, { status: 500 });
   }
 }
